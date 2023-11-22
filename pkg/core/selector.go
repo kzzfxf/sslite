@@ -14,32 +14,7 @@
 
 package core
 
-import (
-	"io"
-	"math/rand"
-	"net/http"
-)
-
-var (
-	letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-)
-
-func randomN(n int) string {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
-type ChunkWriter struct {
-	io.Writer
-}
-
-func (cw ChunkWriter) Write(b []byte) (int, error) {
-	n, err := cw.Writer.Write(b)
-	if err == nil {
-		cw.Writer.(http.Flusher).Flush()
-	}
-	return n, err
+// Select
+func (tp *Engine) Select(addr string) (tun *Tunnel) {
+	return tp.tunnels["test"]
 }

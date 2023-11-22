@@ -21,20 +21,26 @@ import (
 	"github.com/kzzfxf/teleport/pkg/service"
 )
 
+// Start
 func Start(ctx context.Context, addr string) (err error) {
-	server := &httpPkg.Server{
-		Addr: addr,
-		Handler: httpPkg.HandlerFunc(func(w httpPkg.ResponseWriter, r *httpPkg.Request) {
-			if r.Method == httpPkg.MethodConnect {
-				handleTunneling(w, r)
-			} else {
-				handleHTTP(w, r)
-			}
-		}),
-	}
-	return server.ListenAndServe()
+	return httpPkg.ListenAndServe(addr, httpPkg.HandlerFunc(handle))
 }
 
+// handle
+func handle(w httpPkg.ResponseWriter, r *httpPkg.Request) {
+	if r.Method == httpPkg.MethodConnect {
+		handleTunneling(w, r)
+	} else {
+		handleHTTP(w, r)
+	}
+}
+
+// handleHTTP
+func handleHTTP(w httpPkg.ResponseWriter, r *httpPkg.Request) {
+	service.Teleport.ServeHTTP(w, r)
+}
+
+// handleTunneling
 func handleTunneling(w httpPkg.ResponseWriter, r *httpPkg.Request) {
 	hijacker, ok := w.(httpPkg.Hijacker)
 	if !ok {
@@ -46,8 +52,4 @@ func handleTunneling(w httpPkg.ResponseWriter, r *httpPkg.Request) {
 	}
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 	service.Teleport.ServeHTTPS(conn, r.Host)
-}
-
-func handleHTTP(w httpPkg.ResponseWriter, r *httpPkg.Request) {
-	service.Teleport.ServeHTTP(w, r)
 }

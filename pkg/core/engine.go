@@ -23,6 +23,7 @@ import (
 	"github.com/kzzfxf/teleport/pkg/core/dialer/direct"
 	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
 	"github.com/kzzfxf/teleport/pkg/core/dialer/shadowsocks"
+	"github.com/kzzfxf/teleport/pkg/core/internal"
 )
 
 var (
@@ -51,7 +52,7 @@ func NewEngine() (tp *Engine) {
 
 // Mount
 func (tp *Engine) Mount(tun *Tunnel) {
-	tp.tunnels[randomN(12)] = tun
+	tp.tunnels[internal.RandomN(12)] = tun
 }
 
 // Direct
@@ -64,16 +65,12 @@ func (tp *Engine) Reject() (tun *Tunnel) {
 	return tp.tunnels[TunnelRejectID]
 }
 
-// Select
-func (tp *Engine) Select(addr string) (tun *Tunnel) {
-	return tp.tunnels["test"]
-}
-
 // ServeHTTP
 func (tp *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	tun := tp.Select(r.Host)
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
-			return tp.Select(r.Host).Dial("tcp", r.Host)
+			return tun.Dial("tcp", r.Host)
 		},
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -96,14 +93,15 @@ func (tp *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var writer io.Writer = w
 	if len(resp.TransferEncoding) > 0 && resp.TransferEncoding[0] == "chunked" {
-		writer = ChunkWriter{Writer: w}
+		writer = internal.ChunkWriter{Writer: w}
 	}
 	io.Copy(writer, resp.Body)
 }
 
 // ServeSocket
 func (tp *Engine) ServeSocket(client net.Conn, addr string) {
-	server, err := tp.Select(addr).Dial("tcp", addr)
+	tun := tp.Select(addr)
+	server, err := tun.Dial("tcp", addr)
 	if err != nil {
 		client.Close()
 		return

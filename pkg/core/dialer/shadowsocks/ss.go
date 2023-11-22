@@ -18,6 +18,7 @@ import (
 	"errors"
 	"net"
 
+	"github.com/kzzfxf/teleport/pkg/utils"
 	"github.com/riobard/go-shadowsocks2/core"
 	"github.com/riobard/go-shadowsocks2/socks"
 )
@@ -62,7 +63,7 @@ func (ss *ShadowSocks) Dial(network, addr string) (conn net.Conn, err error) {
 	}
 
 	// Keepalive
-	conn.(*net.TCPConn).SetKeepAlive(true)
+	utils.SetKeepAlive(conn)
 	// Stream conn
 	conn = ss.ciph.StreamConn(conn)
 	// Write target

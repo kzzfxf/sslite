@@ -12,37 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package socket
+package internal
 
 import (
-	"context"
-	"net"
-
-	"github.com/kzzfxf/teleport/pkg/service"
-	"github.com/kzzfxf/teleport/pkg/utils"
-	"github.com/riobard/go-shadowsocks2/socks"
+	"io"
+	"math/rand"
+	"net/http"
 )
 
-func Start(ctx context.Context, network, addr string) (err error) {
-	ln, err := net.Listen(network, addr)
-	if err != nil {
-		return
-	}
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			break
-		}
+var (
+	letters = []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+)
 
-		addr, err := socks.Handshake(conn)
-		if err != nil {
-			conn.Close()
-			continue
-		}
-		// Keepalive
-		utils.SetKeepAlive(conn)
-		//
-		service.Teleport.ServeSocket(conn, addr.String())
+func RandomN(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
 	}
-	return
+	return string(b)
+}
+
+type ChunkWriter struct {
+	io.Writer
+}
+
+func (cw ChunkWriter) Write(b []byte) (int, error) {
+	n, err := cw.Writer.Write(b)
+	if err == nil {
+		cw.Writer.(http.Flusher).Flush()
+	}
+	return n, err
 }

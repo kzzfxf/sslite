@@ -12,37 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package socket
+package utils
 
 import (
-	"context"
 	"net"
-
-	"github.com/kzzfxf/teleport/pkg/service"
-	"github.com/kzzfxf/teleport/pkg/utils"
-	"github.com/riobard/go-shadowsocks2/socks"
 )
 
-func Start(ctx context.Context, network, addr string) (err error) {
-	ln, err := net.Listen(network, addr)
-	if err != nil {
-		return
+func SetKeepAlive(conn net.Conn) {
+	if tcpConn, ok := conn.(*net.TCPConn); ok {
+		tcpConn.SetKeepAlive(true)
 	}
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			break
-		}
-
-		addr, err := socks.Handshake(conn)
-		if err != nil {
-			conn.Close()
-			continue
-		}
-		// Keepalive
-		utils.SetKeepAlive(conn)
-		//
-		service.Teleport.ServeSocket(conn, addr.String())
-	}
-	return
 }
