@@ -15,11 +15,34 @@
 package utils
 
 import (
+	"fmt"
 	"net"
+	"strconv"
 )
 
+// SetKeepAlive
 func SetKeepAlive(conn net.Conn) {
 	if tcpConn, ok := conn.(*net.TCPConn); ok {
 		tcpConn.SetKeepAlive(true)
 	}
+}
+
+// ParseAddr
+func ParseAddr(addr string) (domain, ip string, port uint, err error) {
+	h, p, err := net.SplitHostPort(addr)
+	if err != nil {
+		return
+	}
+	if IP := net.ParseIP(h); IP != nil {
+		ip = h
+	} else if len(h) <= 255 {
+		domain = h
+	} else {
+		return "", "", 0, fmt.Errorf("invalid host: %s", h)
+	}
+	nport, err := strconv.ParseUint(p, 10, 16)
+	if err != nil {
+		return
+	}
+	return domain, ip, uint(nport), nil
 }

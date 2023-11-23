@@ -15,14 +15,35 @@
 package dialer
 
 import (
+	"fmt"
 	"net"
+
+	"github.com/kzzfxf/teleport/pkg/core/dialer/shadowsocks"
 )
 
 type Dialer interface {
 
-	// Dial return a new connection by the tunnel.
+	// Dial return a new connection by the dialer.
 	Dial(network, addr string) (conn net.Conn, err error)
 
-	// Close close the tunnel.
+	// Close close the dialer.
 	Close() (err error)
+}
+
+var (
+	dialers = make(map[string]func(URL string) (dialer Dialer, err error))
+)
+
+func init() {
+	dialers["ss"] = func(URL string) (dialer Dialer, err error) {
+		return shadowsocks.NewShadowsocksWithURL(URL)
+	}
+}
+
+// NewDialerWithURL
+func NewDialerWithURL(t, URL string) (dialer Dialer, err error) {
+	if fn, ok := dialers[t]; ok {
+		return fn(URL)
+	}
+	return nil, fmt.Errorf("unrecognized proxy type '%s'", t)
 }

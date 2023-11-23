@@ -14,7 +14,39 @@
 
 package core
 
-// Select
-func (tp *Engine) Select(addr string) (tun *Tunnel) {
-	return tp.tunnels["test"]
+import (
+	"fmt"
+
+	"github.com/kzzfxf/teleport/pkg/utils"
+)
+
+// MatchTunnel
+func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel) {
+	domain, ip, port, err := utils.ParseAddr(addr)
+	if err != nil {
+		return
+	}
+	return tp.match(domain, ip, port)
+}
+
+// SelectTunnel
+func (tp *Engine) SelectTunnel(label string) (tunnels []*Tunnel) {
+	tp.locker.RLock()
+	defer tp.locker.RUnlock()
+	for _, tun := range tp.tunnels {
+		if tun.Is(label) {
+			tunnels = append(tunnels, tun)
+		}
+	}
+	return
+}
+
+// match
+func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
+	fmt.Printf("%s -> %s %d\n", domain, ip, port)
+	tunnels := tp.SelectTunnel("test")
+	if len(tunnels) <= 0 {
+		return
+	}
+	return tunnels[0]
 }

@@ -12,18 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package core
+package config
 
-import (
-	"io"
-	"net"
-)
-
-type Ladder struct {
-	client, server net.Conn
+type Config struct {
+	Proxies []Proxy `json:"proxies,omitempty"`
 }
 
-func (l *Ladder) Go() {
-	go func() { io.Copy(l.server, l.client) }()
-	go func() { io.Copy(l.client, l.server) }()
+type Proxy struct {
+	Name   string `json:"name,omitempty"`
+	URL    string `json:"url,omitempty"`
+	Type   string `json:"type,omitempty"`
+	Labels string `json:"labels,omitempty"`
 }

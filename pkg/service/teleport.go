@@ -17,32 +17,58 @@ package service
 import (
 	"net"
 	"net/http"
+	"strings"
 
+	json "github.com/json-iterator/go"
+	"github.com/kzzfxf/teleport/pkg/config"
 	"github.com/kzzfxf/teleport/pkg/core"
+	"github.com/kzzfxf/teleport/pkg/core/dialer"
 )
 
 type teleport interface {
+	Init(config []byte) (err error)
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
-	ServeHTTPS(client net.Conn, addr string)
-	ServeSocket(client net.Conn, addr string)
+	ServeHTTPS(client net.Conn, server string)
+	ServeSocket(client net.Conn, server string)
 }
 
 type teleportImpl struct {
+	config config.Config
 	engine *core.Engine
 }
 
 var Teleport teleport = &teleportImpl{
+	config: config.Config{},
 	engine: core.NewEngine(),
+}
+
+func (tp *teleportImpl) Init(config []byte) (err error) {
+	err = json.Unmarshal(config, &tp.config)
+	if err != nil {
+		return
+	}
+	for _, proxy := range tp.config.Proxies {
+		dialer, err := dialer.NewDialerWithURL(proxy.Type, proxy.URL)
+		if err != nil {
+			return err
+		}
+		tunnel := core.NewTunnel(proxy.Name, dialer)
+		for _, label := range strings.Split(proxy.Labels, ",") {
+			tunnel.Label(label)
+		}
+		tp.engine.AddTunnel(tunnel)
+	}
+	return
 }
 
 func (tp *teleportImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	tp.engine.ServeHTTP(w, r)
 }
 
-func (tp *teleportImpl) ServeHTTPS(client net.Conn, addr string) {
-	tp.engine.ServeSocket(client, addr)
+func (tp *teleportImpl) ServeHTTPS(client net.Conn, server string) {
+	tp.engine.ServeSocket(client, server)
 }
 
-func (tp *teleportImpl) ServeSocket(client net.Conn, addr string) {
-	tp.engine.ServeSocket(client, addr)
+func (tp *teleportImpl) ServeSocket(client net.Conn, server string) {
+	tp.engine.ServeSocket(client, server)
 }

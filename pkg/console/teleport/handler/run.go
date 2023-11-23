@@ -16,8 +16,10 @@ package handler
 
 import (
 	"context"
+	"os"
 
-	"github.com/kzzfxf/teleport/pkg/port/http"
+	"github.com/kzzfxf/teleport/pkg/port/socket"
+	"github.com/kzzfxf/teleport/pkg/service"
 )
 
 type RunFlags struct {
@@ -31,5 +33,13 @@ func NewRunFlags(gflags *GlobalFlags) (flags *RunFlags) {
 }
 
 func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err error) {
-	return http.Start(ctx, ":8999")
+	config, err := os.ReadFile(flags.ConfigFile)
+	if err != nil {
+		return
+	}
+	err = service.Teleport.Init(config)
+	if err != nil {
+		return
+	}
+	return socket.Start(ctx, "tcp", ":8999")
 }

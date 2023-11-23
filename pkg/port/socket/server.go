@@ -34,7 +34,7 @@ func Start(ctx context.Context, network, addr string) (err error) {
 			break
 		}
 
-		addr, err := socks.Handshake(conn)
+		server, err := socks.Handshake(conn)
 		if err != nil {
 			conn.Close()
 			continue
@@ -42,7 +42,9 @@ func Start(ctx context.Context, network, addr string) (err error) {
 		// Keepalive
 		utils.SetKeepAlive(conn)
 		//
-		service.Teleport.ServeSocket(conn, addr.String())
+		go func() {
+			service.Teleport.ServeSocket(conn, server.String())
+		}()
 	}
 	return
 }

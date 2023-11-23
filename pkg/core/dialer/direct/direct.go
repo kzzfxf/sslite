@@ -16,22 +16,30 @@ package direct
 
 import (
 	"net"
+	"time"
 )
 
 type Direct struct {
+	timeout time.Duration
 }
 
 // NewDirect
-func NewDirect() (d *Direct) {
-	return &Direct{}
+func NewDirect(timeout time.Duration) (d *Direct) {
+	d = &Direct{
+		timeout: timeout,
+	}
+	if d.timeout < 0 {
+		d.timeout = 0
+	}
+	return
 }
 
 // Dial
-func (*Direct) Dial(network string, addr string) (conn net.Conn, err error) {
-	return net.Dial(network, addr)
+func (d *Direct) Dial(network string, addr string) (conn net.Conn, err error) {
+	return net.DialTimeout(network, addr, d.timeout)
 }
 
 // Close
-func (*Direct) Close() (err error) {
+func (d *Direct) Close() (err error) {
 	return
 }

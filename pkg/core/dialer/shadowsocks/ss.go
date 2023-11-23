@@ -17,6 +17,9 @@ package shadowsocks
 import (
 	"errors"
 	"net"
+	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/kzzfxf/teleport/pkg/utils"
 	"github.com/riobard/go-shadowsocks2/core"
@@ -29,21 +32,39 @@ var (
 )
 
 type ShadowSocks struct {
-	node string
-	ciph core.Cipher
+	node    string
+	ciph    core.Cipher
+	timeout time.Duration
 }
 
 // NewShadowsocks
-func NewShadowsocks(node, cipher, password string) (ss *ShadowSocks, err error) {
-	ciph, err := core.PickCipher(cipher, nil, password)
+func NewShadowsocks(node, cipher, passwd string, timeout time.Duration) (ss *ShadowSocks, err error) {
+	ciph, err := core.PickCipher(cipher, nil, passwd)
 	if err != nil {
 		return
 	}
 	ss = &ShadowSocks{
-		node: node,
-		ciph: ciph,
+		node:    node,
+		ciph:    ciph,
+		timeout: timeout,
+	}
+	if ss.timeout < 0 {
+		ss.timeout = 0
 	}
 	return
+}
+
+// NewShadowsocksWithURL
+func NewShadowsocksWithURL(ssURL string) (ss *ShadowSocks, err error) {
+	u, err := url.Parse(ssURL)
+	if err != nil {
+		return
+	}
+	query := u.Query()
+	cipher := query.Get("cipher")
+	passwd := query.Get("password")
+	timeout, _ := strconv.ParseInt(query.Get("timeout"), 10, 8)
+	return NewShadowsocks(u.Host, cipher, passwd, time.Duration(timeout)*time.Second)
 }
 
 // Dial
@@ -57,7 +78,7 @@ func (ss *ShadowSocks) Dial(network, addr string) (conn net.Conn, err error) {
 		return nil, ErrInvalidAddress
 	}
 
-	conn, err = net.Dial(network, ss.node)
+	conn, err = net.DialTimeout(network, ss.node, ss.timeout)
 	if err != nil {
 		return
 	}

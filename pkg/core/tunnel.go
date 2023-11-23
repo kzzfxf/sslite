@@ -30,11 +30,13 @@ type Tunnel struct {
 
 // OpenTunnel
 func NewTunnel(name string, dialer dialer.Dialer) (tun *Tunnel) {
-	return &Tunnel{
+	tun = &Tunnel{
 		name:   name,
 		dialer: dialer,
 		labels: make(map[string]struct{}),
 	}
+	tun.Label(name)
+	return
 }
 
 // Name
