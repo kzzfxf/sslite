@@ -15,6 +15,7 @@
 package service
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 
@@ -46,6 +47,10 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 	if err != nil {
 		return
 	}
+	err = tp.engine.Route().Init(tp.config.Routes)
+	if err != nil {
+		return
+	}
 	for _, proxy := range tp.config.Proxies {
 		dialer, err := dialer.NewDialerWithURL(proxy.Type, proxy.URL)
 		if err != nil {
@@ -57,6 +62,7 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 			tunnel.SetLabel(label)
 		}
 		tp.engine.AddTunnel(tunnel)
+		fmt.Printf("New tunnel %s\n", tunnel.Name())
 	}
 	return
 }

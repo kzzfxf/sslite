@@ -32,20 +32,27 @@ var (
 )
 
 type Engine struct {
-	tunnels map[string]*Tunnel
 	bridges map[string]Bridge
+	tunnels map[string]*Tunnel
+	route   *Route
 	locker  sync.RWMutex
 }
 
 // NewEngine
 func NewEngine() (tp *Engine) {
 	tp = &Engine{
-		tunnels: make(map[string]*Tunnel),
 		bridges: make(map[string]Bridge),
+		tunnels: make(map[string]*Tunnel),
+		route:   NewRoute(),
 	}
 	tp.tunnels[TunnelDirectID] = NewTunnel("direct", direct.NewDirect(3*time.Second))
 	tp.tunnels[TunnelRejectID] = NewTunnel("reject", reject.NewReject())
 	return
+}
+
+// Route
+func (tp *Engine) Route() (r *Route) {
+	return tp.route
 }
 
 // AddTunnel

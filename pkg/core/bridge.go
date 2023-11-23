@@ -15,6 +15,7 @@
 package core
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -61,6 +62,9 @@ func (hb *HttpBridge) Status() (status int32) {
 
 // Transport
 func (hb *HttpBridge) Transport() (err error) {
+
+	fmt.Printf("%s -> %s -> %s\n", hb.r.RemoteAddr, hb.tunnel.Name(), hb.r.Host)
+
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
 			return hb.tunnel.Dial("tcp", hb.r.Host)
@@ -120,6 +124,9 @@ func (sb *SocketBridge) Status() (status int32) {
 
 // Transport
 func (sb *SocketBridge) Transport() (err error) {
+
+	fmt.Printf("%s -> %s -> %s\n", sb.client.RemoteAddr(), sb.tunnel.Name(), sb.server)
+
 	atomic.StoreInt32(&sb.status, BridgeStatusConnecting)
 
 	server, err := sb.tunnel.Dial("tcp", sb.server)

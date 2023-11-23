@@ -16,6 +16,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/kzzfxf/teleport/pkg/port/socket"
@@ -24,11 +25,14 @@ import (
 
 type RunFlags struct {
 	*GlobalFlags
-	// Test string
+	HttpPort   int
+	SocketPort int
 }
 
 func NewRunFlags(gflags *GlobalFlags) (flags *RunFlags) {
 	flags = &RunFlags{GlobalFlags: gflags}
+	flags.HttpPort = 8998
+	flags.SocketPort = 8999
 	return
 }
 
@@ -41,5 +45,5 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 	if err != nil {
 		return
 	}
-	return socket.Start(ctx, "tcp", ":8999")
+	return socket.Start(ctx, "tcp", fmt.Sprintf(":%d", flags.SocketPort))
 }

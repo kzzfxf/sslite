@@ -15,12 +15,25 @@
 package config
 
 type Config struct {
-	Proxies []Proxy `json:"proxies,omitempty"`
+	Routes  []Route `json:"routes"`
+	Groups  []Group `json:"groups"`
+	Proxies []Proxy `json:"proxies"`
+}
+
+type Route struct {
+	Server   string `json:"server"`
+	IP       string `json:"ip"`
+	Selector string `json:"selector"`
+}
+
+type Group struct {
+	Name    string   `json:"name"`
+	Servers []string `json:"servers"`
 }
 
 type Proxy struct {
-	Name   string   `json:"name,omitempty"`
-	URL    string   `json:"url,omitempty"`
-	Type   string   `json:"type,omitempty"`
-	Labels []string `json:"labels,omitempty"`
+	Name   string   `json:"name"`
+	Type   string   `json:"type"`
+	URL    string   `json:"url"`
+	Labels []string `json:"labels"`
 }

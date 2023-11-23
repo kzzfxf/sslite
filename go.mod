@@ -3,6 +3,7 @@ module github.com/kzzfxf/teleport
 go 1.18
 
 require (
+	github.com/gobwas/glob v0.2.3
 	github.com/json-iterator/go v1.1.12
 	github.com/riobard/go-shadowsocks2 v0.2.3
 	github.com/spf13/cobra v1.8.0

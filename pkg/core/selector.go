@@ -15,8 +15,6 @@
 package core
 
 import (
-	"fmt"
-
 	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
@@ -38,7 +36,6 @@ func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel) {
 
 // match
 func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
-	fmt.Printf("%s -> %s %d\n", domain, ip, port)
 	tunnels := tp.SelectTunnels(SelectOpAnd, "singapore")
 	if len(tunnels) <= 0 {
 		return
