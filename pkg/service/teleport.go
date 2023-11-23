@@ -47,9 +47,17 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 	if err != nil {
 		return
 	}
-	err = tp.engine.Route().Init(tp.config.Routes)
-	if err != nil {
-		return
+	for _, route := range tp.config.Routes {
+		tp.engine.Rules().Put(route.Server, route.IP, route.Selector)
+	}
+	for _, group := range tp.config.Groups {
+		if len(group.Servers) <= 0 {
+			continue
+		} else if len(group.Servers) == 1 {
+			tp.engine.Rules().Group(group.Name, group.Servers[0])
+		} else {
+			tp.engine.Rules().Group(group.Name, group.Servers[0], group.Servers[1:]...)
+		}
 	}
 	for _, proxy := range tp.config.Proxies {
 		dialer, err := dialer.NewDialerWithURL(proxy.Type, proxy.URL)

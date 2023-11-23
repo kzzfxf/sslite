@@ -15,6 +15,9 @@
 package core
 
 import (
+	"strings"
+	"time"
+
 	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
@@ -36,7 +39,33 @@ func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel) {
 
 // match
 func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
-	tunnels := tp.SelectTunnels(SelectOpAnd, "singapore")
+	server := domain
+	if server == "" {
+		server = ip
+	}
+
+	_, tunnel, ok := tp.route.Get(server)
+	if ok {
+		return tunnel
+	}
+
+	expectedIP, selector, ok := tp.rules.Match(server)
+	if !ok {
+		return nil
+	}
+
+	var labels []string
+	labels = append(labels, strings.Split(selector, ",")...)
+
+	if len(labels) <= 0 {
+		return
+	}
+
+	defer func() {
+		tp.route.Put(server, expectedIP, tunnel, time.Now().Add(600*time.Second))
+	}()
+
+	tunnels := tp.SelectTunnels(SelectOpAnd, labels...)
 	if len(tunnels) <= 0 {
 		return
 	}
