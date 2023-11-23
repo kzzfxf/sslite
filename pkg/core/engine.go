@@ -57,6 +57,13 @@ func (tp *Engine) AddTunnel(tunnel *Tunnel) (tunnelID string) {
 	return
 }
 
+// RemoveTunnel
+func (tp *Engine) RemoveTunnel(tunnelID string) {
+	tp.locker.Lock()
+	defer tp.locker.Unlock()
+	delete(tp.tunnels, tunnelID)
+}
+
 // AddBridge
 func (tp *Engine) AddBridge(bridge Bridge) (bridgeID string) {
 	bridgeID = internal.RandomN(16)

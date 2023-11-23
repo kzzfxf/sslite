@@ -23,7 +23,10 @@ import (
 
 type Dialer interface {
 
-	// Dial return a new connection by the dialer.
+	// Addr returns the dialer address.
+	Addr() (addr string)
+
+	// Dial returns a new connection by the dialer.
 	Dial(network, addr string) (conn net.Conn, err error)
 
 	// Close close the dialer.

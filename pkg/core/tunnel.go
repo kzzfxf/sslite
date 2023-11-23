@@ -15,17 +15,26 @@
 package core
 
 import (
+	"context"
 	"net"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/kzzfxf/teleport/pkg/core/dialer"
 )
 
 type Tunnel struct {
-	name   string
-	dialer dialer.Dialer
-	labels map[string]struct{}
-	locker sync.RWMutex
+	name       string
+	dialer     dialer.Dialer
+	down, up   chan int
+	downNBytes uint64
+	upNBytes   uint64
+	labels     map[string]string
+	wg         sync.WaitGroup
+	ctx        context.Context
+	cancel     context.CancelFunc
+	locker     sync.RWMutex
 }
 
 // OpenTunnel
@@ -33,10 +42,39 @@ func NewTunnel(name string, dialer dialer.Dialer) (tun *Tunnel) {
 	tun = &Tunnel{
 		name:   name,
 		dialer: dialer,
-		labels: make(map[string]struct{}),
+		labels: make(map[string]string),
+		down:   make(chan int, 10240),
+		up:     make(chan int, 10240),
 	}
-	tun.Label(name)
+	tun.SetLabel(name)
+
+	tun.ctx, tun.cancel = context.WithCancel(context.Background())
+	tun.wg.Add(1)
+	// Background goroutine
+	go tun.background()
+
 	return
+}
+
+// background
+func (tun *Tunnel) background() {
+	ticker := time.NewTicker(10 * time.Second)
+	defer func() {
+		ticker.Stop()
+		tun.wg.Done()
+	}()
+	for {
+		select {
+		case <-tun.ctx.Done():
+			return
+		case <-ticker.C:
+			tun.evaluate()
+		case n := <-tun.down:
+			atomic.AddUint64(&tun.downNBytes, uint64(n))
+		case n := <-tun.up:
+			atomic.AddUint64(&tun.upNBytes, uint64(n))
+		}
+	}
 }
 
 // Name
@@ -46,27 +84,62 @@ func (tun *Tunnel) Name() (name string) {
 
 // Dial
 func (tun *Tunnel) Dial(network, addr string) (conn net.Conn, err error) {
-	return tun.dialer.Dial(network, addr)
-}
-
-// Is
-func (tun *Tunnel) Is(label string) (yes bool) {
-	tun.locker.RLock()
-	defer tun.locker.RUnlock()
-	_, yes = tun.labels[label]
+	conn, err = tun.dialer.Dial(network, addr)
+	if err == nil {
+		conn = &ConnTrafficTracker{Conn: conn, down: tun.down, up: tun.up}
+	}
 	return
 }
 
-// Label
-func (tun *Tunnel) Label(label string) {
+// DownNBytes
+func (tun *Tunnel) DownNBytes() uint64 {
+	return atomic.LoadUint64(&tun.downNBytes)
+}
+
+// UpNBytes
+func (tun *Tunnel) UpNBytes() uint64 {
+	return atomic.LoadUint64(&tun.upNBytes)
+}
+
+// Is
+func (tun *Tunnel) Is(label string) (hit bool) {
+	tun.locker.RLock()
+	defer tun.locker.RUnlock()
+	if label == "" {
+		return false
+	}
+	_, hit = tun.labels[label]
+	return
+}
+
+// SetLabel
+func (tun *Tunnel) SetLabel(label string) {
 	tun.locker.Lock()
 	defer tun.locker.Unlock()
 	if label != "" {
-		tun.labels[label] = struct{}{}
+		tun.labels[label] = label
 	}
+}
+
+// RemoveLabel
+func (tun *Tunnel) RemoveLabel(label string) {
+	tun.locker.Lock()
+	defer tun.locker.Unlock()
+	if label != "" {
+		delete(tun.labels, label)
+	}
+}
+
+// evaluate
+func (tun *Tunnel) evaluate() {
+
 }
 
 // Close
 func (tun *Tunnel) Close() (err error) {
+	if tun.cancel != nil {
+		tun.cancel()
+	}
+	tun.wg.Wait()
 	return tun.dialer.Close()
 }

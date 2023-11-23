@@ -31,6 +31,11 @@ func NewReject() (d *Reject) {
 	return &Reject{}
 }
 
+// Addr
+func (*Reject) Addr() (addr string) {
+	return ""
+}
+
 // Dial
 func (*Reject) Dial(network string, addr string) (conn net.Conn, err error) {
 	return nil, ErrDialRejected

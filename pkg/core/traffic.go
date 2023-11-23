@@ -12,15 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package core
 
-type Config struct {
-	Proxies []Proxy `json:"proxies,omitempty"`
+import (
+	"net"
+)
+
+type ConnTrafficTracker struct {
+	net.Conn
+	down, up chan<- int
 }
 
-type Proxy struct {
-	Name   string   `json:"name,omitempty"`
-	URL    string   `json:"url,omitempty"`
-	Type   string   `json:"type,omitempty"`
-	Labels []string `json:"labels,omitempty"`
+func (t *ConnTrafficTracker) Read(b []byte) (n int, err error) {
+	defer func() {
+		if n > 0 {
+			t.down <- n
+		}
+	}()
+	return t.Conn.Read(b)
+}
+
+func (t *ConnTrafficTracker) Write(b []byte) (n int, err error) {
+	defer func() {
+		if n > 0 {
+			t.up <- n
+		}
+	}()
+	return t.Conn.Write(b)
 }

@@ -67,6 +67,11 @@ func NewShadowsocksWithURL(ssURL string) (ss *ShadowSocks, err error) {
 	return NewShadowsocks(u.Host, cipher, passwd, time.Duration(timeout)*time.Second)
 }
 
+// Addr
+func (ss *ShadowSocks) Addr() (addr string) {
+	return ss.node
+}
+
 // Dial
 func (ss *ShadowSocks) Dial(network, addr string) (conn net.Conn, err error) {
 	if network != "tcp" {

@@ -34,6 +34,11 @@ func NewDirect(timeout time.Duration) (d *Direct) {
 	return
 }
 
+// Addr
+func (d *Direct) Addr() (addr string) {
+	return "0.0.0.0:0"
+}
+
 // Dial
 func (d *Direct) Dial(network string, addr string) (conn net.Conn, err error) {
 	return net.DialTimeout(network, addr, d.timeout)

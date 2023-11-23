@@ -17,7 +17,6 @@ package service
 import (
 	"net"
 	"net/http"
-	"strings"
 
 	json "github.com/json-iterator/go"
 	"github.com/kzzfxf/teleport/pkg/config"
@@ -53,8 +52,9 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 			return err
 		}
 		tunnel := core.NewTunnel(proxy.Name, dialer)
-		for _, label := range strings.Split(proxy.Labels, ",") {
-			tunnel.Label(label)
+		tunnel.SetLabel(dialer.Addr())
+		for _, label := range proxy.Labels {
+			tunnel.SetLabel(label)
 		}
 		tp.engine.AddTunnel(tunnel)
 	}

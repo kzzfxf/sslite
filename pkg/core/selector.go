@@ -20,6 +20,13 @@ import (
 	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
+type SelectOperation int
+
+const (
+	SelectOpAnd SelectOperation = 0
+	SelectOpOr  SelectOperation = 1
+)
+
 // MatchTunnel
 func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel) {
 	domain, ip, port, err := utils.ParseAddr(addr)
@@ -29,24 +36,38 @@ func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel) {
 	return tp.match(domain, ip, port)
 }
 
-// SelectTunnel
-func (tp *Engine) SelectTunnel(label string) (tunnels []*Tunnel) {
-	tp.locker.RLock()
-	defer tp.locker.RUnlock()
-	for _, tun := range tp.tunnels {
-		if tun.Is(label) {
-			tunnels = append(tunnels, tun)
-		}
-	}
-	return
-}
-
 // match
 func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 	fmt.Printf("%s -> %s %d\n", domain, ip, port)
-	tunnels := tp.SelectTunnel("test")
+	tunnels := tp.SelectTunnels(SelectOpAnd, "singapore")
 	if len(tunnels) <= 0 {
 		return
 	}
 	return tunnels[0]
+}
+
+// SelectTunnels
+func (tp *Engine) SelectTunnels(op SelectOperation, labels ...string) (tunnels []*Tunnel) {
+	tp.locker.RLock()
+	defer tp.locker.RUnlock()
+	if len(labels) <= 0 {
+		return
+	}
+	for _, tunnel := range tp.tunnels {
+		hits := 0
+		for _, label := range labels {
+			if tunnel.Is(label) {
+				if op == SelectOpAnd {
+					hits++
+				} else if op == SelectOpOr {
+					tunnels = append(tunnels, tunnel)
+					break
+				}
+			}
+		}
+		if op == SelectOpAnd && hits == len(labels) {
+			tunnels = append(tunnels, tunnel)
+		}
+	}
+	return
 }
