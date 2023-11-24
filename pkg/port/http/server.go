@@ -18,38 +18,45 @@ import (
 	"context"
 	httpPkg "net/http"
 
+	"github.com/kzzfxf/teleport/pkg/common"
 	"github.com/kzzfxf/teleport/pkg/service"
 )
 
 // Start
 func Start(ctx context.Context, addr string) (err error) {
-	return httpPkg.ListenAndServe(addr, httpPkg.HandlerFunc(handle))
+	return httpPkg.ListenAndServe(addr, handler(ctx, addr))
 }
 
-// handle
-func handle(w httpPkg.ResponseWriter, r *httpPkg.Request) {
-	if r.Method == httpPkg.MethodConnect {
-		handleTunneling(w, r)
-	} else {
-		handleHTTP(w, r)
-	}
-}
+// handler
+func handler(ctx context.Context, addr string) httpPkg.HandlerFunc {
+	return func(w httpPkg.ResponseWriter, r *httpPkg.Request) {
+		reqCtx, cancel := context.WithCancel(r.Context())
+		reqCtx = context.WithValue(reqCtx, common.ContextEntry, addr)
 
-// handleHTTP
-func handleHTTP(w httpPkg.ResponseWriter, r *httpPkg.Request) {
-	service.Teleport.ServeHTTP(w, r)
-}
+		go func() {
+			defer cancel()
+			select {
+			case <-ctx.Done():
+				return
+			case <-reqCtx.Done():
+				return
+			}
+		}()
+		defer cancel()
 
-// handleTunneling
-func handleTunneling(w httpPkg.ResponseWriter, r *httpPkg.Request) {
-	hijacker, ok := w.(httpPkg.Hijacker)
-	if !ok {
-		return
+		if r.Method != httpPkg.MethodConnect {
+			service.Teleport.ServeHTTP(reqCtx, w, r)
+		} else {
+			hijacker, ok := w.(httpPkg.Hijacker)
+			if !ok {
+				return
+			}
+			conn, _, err := hijacker.Hijack()
+			if err != nil {
+				return
+			}
+			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+			service.Teleport.ServeHTTPS(reqCtx, conn, r.Host)
+		}
 	}
-	conn, _, err := hijacker.Hijack()
-	if err != nil {
-		return
-	}
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	service.Teleport.ServeHTTPS(conn, r.Host)
 }

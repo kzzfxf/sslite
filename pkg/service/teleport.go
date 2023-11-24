@@ -15,9 +15,11 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	json "github.com/json-iterator/go"
 	"github.com/kzzfxf/teleport/pkg/config"
@@ -27,9 +29,9 @@ import (
 
 type teleport interface {
 	Init(config []byte) (err error)
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
-	ServeHTTPS(client net.Conn, server string)
-	ServeSocket(client net.Conn, server string)
+	ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request)
+	ServeHTTPS(ctx context.Context, client net.Conn, server string)
+	ServeSocket(ctx context.Context, client net.Conn, server string)
 }
 
 type teleportImpl struct {
@@ -48,7 +50,7 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 		return
 	}
 	for _, route := range tp.config.Routes {
-		tp.engine.Rules().Put(route.Server, route.IP, route.Selector)
+		tp.engine.Rules().Put(route.Server, "", route.Selector)
 	}
 	for _, group := range tp.config.Groups {
 		if len(group.Servers) <= 0 {
@@ -69,20 +71,25 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 		for _, label := range proxy.Labels {
 			tunnel.SetLabel(label)
 		}
+		tunnel.SetupLatencyTester(tp.config.Latency.URL, time.Duration(tp.config.Latency.Timeout)*time.Millisecond)
 		tp.engine.AddTunnel(tunnel)
 		fmt.Printf("New tunnel %s\n", tunnel.Name())
 	}
 	return
 }
 
-func (tp *teleportImpl) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	tp.engine.ServeHTTP(w, r)
+// func (tp *teleportImpl) ImportConfig() {
+
+// }
+
+func (tp *teleportImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	tp.engine.ServeHTTP(ctx, w, r)
 }
 
-func (tp *teleportImpl) ServeHTTPS(client net.Conn, server string) {
-	tp.engine.ServeSocket(client, server)
+func (tp *teleportImpl) ServeHTTPS(ctx context.Context, client net.Conn, server string) {
+	tp.engine.ServeSocket(ctx, client, server)
 }
 
-func (tp *teleportImpl) ServeSocket(client net.Conn, server string) {
-	tp.engine.ServeSocket(client, server)
+func (tp *teleportImpl) ServeSocket(ctx context.Context, client net.Conn, server string) {
+	tp.engine.ServeSocket(ctx, client, server)
 }

@@ -15,6 +15,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -23,6 +24,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/kzzfxf/teleport/pkg/common"
 	"github.com/kzzfxf/teleport/pkg/core/internal"
 )
 
@@ -40,7 +42,7 @@ type Bridge interface {
 	Status() (status int32)
 
 	// Transport
-	Transport() (err error)
+	Transport(ctx context.Context) (err error)
 }
 
 type HttpBridge struct {
@@ -61,9 +63,9 @@ func (hb *HttpBridge) Status() (status int32) {
 }
 
 // Transport
-func (hb *HttpBridge) Transport() (err error) {
+func (hb *HttpBridge) Transport(ctx context.Context) (err error) {
 
-	fmt.Printf("%s -> %s -> %s\n", hb.r.RemoteAddr, hb.tunnel.Name(), hb.r.Host)
+	fmt.Printf("%s -> %s -> %s -> %s\n", hb.r.RemoteAddr, ctx.Value(common.ContextEntry), hb.tunnel.Name(), hb.r.Host)
 
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
@@ -123,9 +125,9 @@ func (sb *SocketBridge) Status() (status int32) {
 }
 
 // Transport
-func (sb *SocketBridge) Transport() (err error) {
+func (sb *SocketBridge) Transport(ctx context.Context) (err error) {
 
-	fmt.Printf("%s -> %s -> %s\n", sb.client.RemoteAddr(), sb.tunnel.Name(), sb.server)
+	fmt.Printf("%s -> %s -> %s -> %s\n", sb.client.RemoteAddr(), ctx.Value(common.ContextEntry), sb.tunnel.Name(), sb.server)
 
 	atomic.StoreInt32(&sb.status, BridgeStatusConnecting)
 
@@ -148,6 +150,7 @@ func (sb *SocketBridge) Transport() (err error) {
 		defer wg.Done()
 		io.Copy(server, sb.client)
 	}()
+
 	go func() {
 		defer wg.Done()
 		io.Copy(sb.client, server)

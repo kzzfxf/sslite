@@ -64,7 +64,7 @@ func NewShadowsocksWithURL(ssURL string) (ss *ShadowSocks, err error) {
 	cipher := query.Get("cipher")
 	passwd := query.Get("password")
 	timeout, _ := strconv.ParseInt(query.Get("timeout"), 10, 8)
-	return NewShadowsocks(u.Host, cipher, passwd, time.Duration(timeout)*time.Second)
+	return NewShadowsocks(u.Host, cipher, passwd, time.Duration(timeout)*time.Millisecond)
 }
 
 // Addr

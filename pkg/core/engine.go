@@ -15,6 +15,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -35,7 +36,7 @@ type Engine struct {
 	bridges map[string]Bridge
 	tunnels map[string]*Tunnel
 	route   *Route
-	rules   *RouteRules
+	rules   *Rules
 	locker  sync.RWMutex
 }
 
@@ -45,10 +46,14 @@ func NewEngine() (tp *Engine) {
 		bridges: make(map[string]Bridge),
 		tunnels: make(map[string]*Tunnel),
 		route:   NewRoute(),
-		rules:   NewRouteRules(),
+		rules:   NewRules(),
 	}
-	tp.tunnels[TunnelDirectID] = NewTunnel("direct.proxy", direct.NewDirect(3*time.Second))
-	tp.tunnels[TunnelRejectID] = NewTunnel("reject.proxy", reject.NewReject())
+	direct := NewTunnel("direct.proxy", direct.NewDirect(3000*time.Millisecond))
+	direct.SetLabel("direct")
+	tp.tunnels[TunnelDirectID] = direct
+	reject := NewTunnel("reject.proxy", reject.NewReject())
+	reject.SetLabel("reject")
+	tp.tunnels[TunnelRejectID] = reject
 	return
 }
 
@@ -58,7 +63,7 @@ func (tp *Engine) Route() (r *Route) {
 }
 
 // Rules
-func (tp *Engine) Rules() (r *RouteRules) {
+func (tp *Engine) Rules() (r *Rules) {
 	return tp.rules
 }
 
@@ -109,32 +114,32 @@ func (tp *Engine) Reject() (tun *Tunnel) {
 }
 
 // ServeHTTP
-func (tp *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (tp *Engine) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	tunnel := tp.MatchTunnel(r.Host)
 	if tunnel == nil {
 		fmt.Printf("Select tunnel for %s failed\n", r.Host)
 		return
 	}
-	tp.transport(NewHttpBridge(w, r, tunnel))
+	tp.transport(ctx, NewHttpBridge(w, r, tunnel))
 }
 
 // ServeSocket
-func (tp *Engine) ServeSocket(client net.Conn, server string) {
+func (tp *Engine) ServeSocket(ctx context.Context, client net.Conn, server string) {
 	tunnel := tp.MatchTunnel(server)
 	if tunnel == nil {
 		fmt.Printf("Select tunnel for %s failed\n", server)
 		return
 	}
-	tp.transport(NewSocketBridge(client, server, tunnel))
+	tp.transport(ctx, NewSocketBridge(client, server, tunnel))
 }
 
 // transport
-func (tp *Engine) transport(bridge Bridge) {
+func (tp *Engine) transport(ctx context.Context, bridge Bridge) {
 	bridgeID := tp.AddBridge(bridge)
 	defer func() {
 		tp.RemoveBridge(bridgeID)
 	}()
-	err := bridge.Transport()
+	err := bridge.Transport(ctx)
 	if err != nil {
 		fmt.Printf("Transport failed, error = %s\n", err.Error())
 		return

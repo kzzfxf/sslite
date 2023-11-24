@@ -16,7 +16,11 @@ package core
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
+	"net/http"
+	"net/url"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -25,16 +29,18 @@ import (
 )
 
 type Tunnel struct {
-	name       string
-	dialer     dialer.Dialer
-	down, up   chan int
-	downNBytes uint64
-	upNBytes   uint64
-	labels     map[string]string
-	wg         sync.WaitGroup
-	ctx        context.Context
-	cancel     context.CancelFunc
-	locker     sync.RWMutex
+	name          string
+	dialer        dialer.Dialer
+	down, up      chan int
+	downNBytes    uint64
+	upNBytes      uint64
+	latencyTester LatencyTester
+	latency       time.Duration
+	labels        map[string]string
+	wg            sync.WaitGroup
+	ctx           context.Context
+	cancel        context.CancelFunc
+	locker        sync.RWMutex
 }
 
 // OpenTunnel
@@ -42,9 +48,9 @@ func NewTunnel(name string, dialer dialer.Dialer) (tun *Tunnel) {
 	tun = &Tunnel{
 		name:   name,
 		dialer: dialer,
-		labels: make(map[string]string),
 		down:   make(chan int, 10240),
 		up:     make(chan int, 10240),
+		labels: make(map[string]string),
 	}
 	tun.SetLabel(name)
 
@@ -130,9 +136,26 @@ func (tun *Tunnel) RemoveLabel(label string) {
 	}
 }
 
+// SetupLatencyTester
+func (tun *Tunnel) SetupLatencyTester(URL string, timeout time.Duration) {
+	if URL != "" {
+		tun.latencyTester.URL = URL
+	}
+	if timeout <= 0 {
+		tun.latencyTester.Timeout = 3000 * time.Millisecond
+	}
+}
+
 // evaluate
 func (tun *Tunnel) evaluate() {
-
+	if tun.latencyTester.URL != "" {
+		latency, err := tun.latencyTester.Test(tun)
+		if err != nil {
+			fmt.Printf("err: %s\n", err.Error())
+			return
+		}
+		tun.latency = latency
+	}
 }
 
 // Close
@@ -142,4 +165,54 @@ func (tun *Tunnel) Close() (err error) {
 	}
 	tun.wg.Wait()
 	return tun.dialer.Close()
+}
+
+type LatencyTester struct {
+	URL     string
+	Timeout time.Duration
+}
+
+// Test
+func (l LatencyTester) Test(tunnel *Tunnel) (latency time.Duration, err error) {
+	u, err := url.Parse(l.URL)
+	if err != nil {
+		return
+	}
+	server := ""
+	if u.Hostname() == "" {
+		return 0, errors.New("invalid hostname")
+	}
+	if port := u.Port(); port != "" {
+		server = u.Host
+	} else {
+		if u.Scheme == "http" {
+			server = fmt.Sprintf("%s:%d", u.Hostname(), 80)
+		} else if u.Scheme == "https" {
+			server = fmt.Sprintf("%s:%d", u.Hostname(), 443)
+		} else {
+			return 0, errors.New("invalid scheme")
+		}
+	}
+	t := &http.Transport{
+		Dial: func(network, addr string) (conn net.Conn, err error) {
+			return tunnel.Dial("tcp", server)
+		},
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+	c := &http.Client{
+		Transport: t,
+		Timeout:   l.Timeout,
+	}
+
+	start := time.Now()
+	_, err = c.Get(l.URL)
+	if err != nil {
+		latency = -1
+	} else {
+		latency = time.Since(start)
+	}
+
+	return
 }

@@ -18,11 +18,11 @@ type Config struct {
 	Routes  []Route `json:"routes"`
 	Groups  []Group `json:"groups"`
 	Proxies []Proxy `json:"proxies"`
+	Latency Latency `json:"latency"`
 }
 
 type Route struct {
 	Server   string `json:"server"`
-	IP       string `json:"ip"`
 	Selector string `json:"selector"`
 }
 
@@ -36,4 +36,9 @@ type Proxy struct {
 	Type   string   `json:"type"`
 	URL    string   `json:"url"`
 	Labels []string `json:"labels"`
+}
+
+type Latency struct {
+	URL     string `json:"url"`
+	Timeout int64  `json:"timeout"`
 }

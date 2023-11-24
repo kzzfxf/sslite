@@ -18,6 +18,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/kzzfxf/teleport/pkg/common"
 	"github.com/kzzfxf/teleport/pkg/service"
 	"github.com/kzzfxf/teleport/pkg/utils"
 	"github.com/riobard/go-shadowsocks2/socks"
@@ -28,6 +29,12 @@ func Start(ctx context.Context, network, addr string) (err error) {
 	if err != nil {
 		return
 	}
+
+	go func() {
+		defer ln.Close()
+		<-ctx.Done()
+	}()
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -42,8 +49,22 @@ func Start(ctx context.Context, network, addr string) (err error) {
 		// Keepalive
 		utils.SetKeepAlive(conn)
 		//
+		connCtx, cancel := context.WithCancel(ctx)
+		connCtx = context.WithValue(connCtx, common.ContextEntry, addr)
+
 		go func() {
-			service.Teleport.ServeSocket(conn, server.String())
+			defer cancel()
+			select {
+			case <-ctx.Done():
+				return
+			case <-connCtx.Done():
+				return
+			}
+		}()
+
+		go func() {
+			defer cancel()
+			service.Teleport.ServeSocket(connCtx, conn, server.String())
 		}()
 	}
 	return
