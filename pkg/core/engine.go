@@ -120,26 +120,26 @@ func (tp *Engine) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.
 		fmt.Printf("Select tunnel for %s failed\n", r.Host)
 		return
 	}
-	tp.transport(ctx, NewHttpBridge(w, r, tunnel))
+	tp.transport(ctx, NewHttpBridge(w, r, r.Host), tunnel)
 }
 
 // ServeSocket
-func (tp *Engine) ServeSocket(ctx context.Context, client net.Conn, server string) {
-	tunnel := tp.MatchTunnel(server)
+func (tp *Engine) ServeSocket(ctx context.Context, client net.Conn, serverAddr string) {
+	tunnel := tp.MatchTunnel(serverAddr)
 	if tunnel == nil {
-		fmt.Printf("Select tunnel for %s failed\n", server)
+		fmt.Printf("Select tunnel for %s failed\n", serverAddr)
 		return
 	}
-	tp.transport(ctx, NewSocketBridge(client, server, tunnel))
+	tp.transport(ctx, NewSocketBridge(client, serverAddr), tunnel)
 }
 
 // transport
-func (tp *Engine) transport(ctx context.Context, bridge Bridge) {
+func (tp *Engine) transport(ctx context.Context, bridge Bridge, tunnel *Tunnel) {
 	bridgeID := tp.AddBridge(bridge)
 	defer func() {
 		tp.RemoveBridge(bridgeID)
 	}()
-	err := bridge.Transport(ctx)
+	err := bridge.Transport(ctx, tunnel)
 	if err != nil {
 		fmt.Printf("Transport failed, error = %s\n", err.Error())
 		return

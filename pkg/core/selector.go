@@ -49,7 +49,7 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 		return tunnel
 	}
 
-	expectedIP, selector, ok := tp.rules.Match(server)
+	customIP, selector, ok := tp.rules.Match(server)
 	if !ok {
 		return nil
 	}
@@ -62,14 +62,19 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 	}
 
 	defer func() {
-		tp.route.Put(server, expectedIP, tunnel, time.Now().Add(600*time.Second))
+		if tunnel != nil {
+			tp.route.Put(server, customIP, tunnel, time.Now().Add(600*time.Second))
+		}
 	}()
 
 	tunnels := tp.SelectTunnels(SelectOpAnd, labels...)
 	if len(tunnels) <= 0 {
 		return
 	}
-	return tunnels[0]
+	for _, tunnel := range tunnels {
+		return tunnel
+	}
+	return
 }
 
 // SelectTunnels

@@ -18,21 +18,26 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 
+	"github.com/kzzfxf/teleport/pkg/port/http"
 	"github.com/kzzfxf/teleport/pkg/port/socket"
 	"github.com/kzzfxf/teleport/pkg/service"
+	"github.com/kzzfxf/teleport/pkg/ui"
 )
 
 type RunFlags struct {
 	*GlobalFlags
 	HttpPort   int
 	SocketPort int
+	OpenUI     bool
 }
 
 func NewRunFlags(gflags *GlobalFlags) (flags *RunFlags) {
 	flags = &RunFlags{GlobalFlags: gflags}
 	flags.HttpPort = 8998
 	flags.SocketPort = 8999
+	flags.OpenUI = false
 	return
 }
 
@@ -45,5 +50,32 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 	if err != nil {
 		return
 	}
-	return socket.Start(ctx, "tcp", fmt.Sprintf(":%d", flags.SocketPort))
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	if flags.HttpPort > 0 {
+		go func() {
+			defer wg.Done()
+			err = http.Start(ctx, fmt.Sprintf(":%d", flags.HttpPort))
+		}()
+	}
+
+	if flags.HttpPort > 0 {
+		go func() {
+			defer wg.Done()
+			err = socket.Start(ctx, "tcp", fmt.Sprintf(":%d", flags.SocketPort))
+		}()
+	}
+
+	if flags.OpenUI {
+		go func() {
+			defer wg.Done()
+			err = ui.ShowMainUI()
+		}()
+	}
+
+	wg.Wait()
+
+	return
 }

@@ -23,6 +23,7 @@ type Config struct {
 
 type Route struct {
 	Server   string `json:"server"`
+	IP       string `json:"ip"`
 	Selector string `json:"selector"`
 }
 

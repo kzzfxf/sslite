@@ -24,14 +24,13 @@ import (
 	json "github.com/json-iterator/go"
 	"github.com/kzzfxf/teleport/pkg/config"
 	"github.com/kzzfxf/teleport/pkg/core"
-	"github.com/kzzfxf/teleport/pkg/core/dialer"
 )
 
 type teleport interface {
 	Init(config []byte) (err error)
 	ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request)
-	ServeHTTPS(ctx context.Context, client net.Conn, server string)
-	ServeSocket(ctx context.Context, client net.Conn, server string)
+	ServeHTTPS(ctx context.Context, client net.Conn, serverAddr string)
+	ServeSocket(ctx context.Context, client net.Conn, serverAddr string)
 }
 
 type teleportImpl struct {
@@ -50,7 +49,7 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 		return
 	}
 	for _, route := range tp.config.Routes {
-		tp.engine.Rules().Put(route.Server, "", route.Selector)
+		tp.engine.Rules().Put(route.Server, route.IP, route.Selector)
 	}
 	for _, group := range tp.config.Groups {
 		if len(group.Servers) <= 0 {
@@ -62,7 +61,7 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 		}
 	}
 	for _, proxy := range tp.config.Proxies {
-		dialer, err := dialer.NewDialerWithURL(proxy.Type, proxy.URL)
+		dialer, err := core.NewDialerWithURL(proxy.Type, proxy.URL)
 		if err != nil {
 			return err
 		}
@@ -86,10 +85,10 @@ func (tp *teleportImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r 
 	tp.engine.ServeHTTP(ctx, w, r)
 }
 
-func (tp *teleportImpl) ServeHTTPS(ctx context.Context, client net.Conn, server string) {
-	tp.engine.ServeSocket(ctx, client, server)
+func (tp *teleportImpl) ServeHTTPS(ctx context.Context, client net.Conn, serverAddr string) {
+	tp.engine.ServeSocket(ctx, client, serverAddr)
 }
 
-func (tp *teleportImpl) ServeSocket(ctx context.Context, client net.Conn, server string) {
-	tp.engine.ServeSocket(ctx, client, server)
+func (tp *teleportImpl) ServeSocket(ctx context.Context, client net.Conn, serverAddr string) {
+	tp.engine.ServeSocket(ctx, client, serverAddr)
 }

@@ -24,13 +24,11 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/kzzfxf/teleport/pkg/core/dialer"
 )
 
 type Tunnel struct {
 	name          string
-	dialer        dialer.Dialer
+	dialer        Dialer
 	down, up      chan int
 	downNBytes    uint64
 	upNBytes      uint64
@@ -44,7 +42,7 @@ type Tunnel struct {
 }
 
 // OpenTunnel
-func NewTunnel(name string, dialer dialer.Dialer) (tun *Tunnel) {
+func NewTunnel(name string, dialer Dialer) (tun *Tunnel) {
 	tun = &Tunnel{
 		name:   name,
 		dialer: dialer,
@@ -156,6 +154,7 @@ func (tun *Tunnel) evaluate() {
 		}
 		tun.latency = latency
 	}
+	fmt.Printf("name: %s down: %d, up: %d, latency: %dms\n", tun.Name(), tun.downNBytes, tun.upNBytes, tun.latency.Milliseconds())
 }
 
 // Close

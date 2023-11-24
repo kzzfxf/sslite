@@ -42,19 +42,19 @@ type Bridge interface {
 	Status() (status int32)
 
 	// Transport
-	Transport(ctx context.Context) (err error)
+	Transport(ctx context.Context, tunnel *Tunnel) (err error)
 }
 
 type HttpBridge struct {
-	w      http.ResponseWriter
-	r      *http.Request
-	tunnel *Tunnel
-	status int32
+	w          http.ResponseWriter
+	r          *http.Request
+	serverAddr string
+	status     int32
 }
 
 // NewHttpBridge
-func NewHttpBridge(w http.ResponseWriter, r *http.Request, tunnel *Tunnel) (hb *HttpBridge) {
-	return &HttpBridge{w: w, r: r, tunnel: tunnel}
+func NewHttpBridge(w http.ResponseWriter, r *http.Request, serverAddr string) (hb *HttpBridge) {
+	return &HttpBridge{w: w, r: r, serverAddr: serverAddr}
 }
 
 // Status
@@ -63,13 +63,13 @@ func (hb *HttpBridge) Status() (status int32) {
 }
 
 // Transport
-func (hb *HttpBridge) Transport(ctx context.Context) (err error) {
+func (hb *HttpBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error) {
 
-	fmt.Printf("%s -> %s -> %s -> %s\n", hb.r.RemoteAddr, ctx.Value(common.ContextEntry), hb.tunnel.Name(), hb.r.Host)
+	fmt.Printf("%s -> %s -> %s -> %s\n", hb.r.RemoteAddr, ctx.Value(common.ContextEntry), tunnel.Name(), hb.serverAddr)
 
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
-			return hb.tunnel.Dial("tcp", hb.r.Host)
+			return tunnel.Dial("tcp", hb.serverAddr)
 		},
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -108,15 +108,14 @@ func (hb *HttpBridge) Transport(ctx context.Context) (err error) {
 }
 
 type SocketBridge struct {
-	client net.Conn
-	server string
-	tunnel *Tunnel
-	status int32
+	client     net.Conn
+	serverAddr string
+	status     int32
 }
 
 // NewSocketBridge
-func NewSocketBridge(client net.Conn, server string, tunnel *Tunnel) (sb *SocketBridge) {
-	return &SocketBridge{client: client, server: server, tunnel: tunnel}
+func NewSocketBridge(client net.Conn, serverAddr string) (sb *SocketBridge) {
+	return &SocketBridge{client: client, serverAddr: serverAddr}
 }
 
 // Status
@@ -125,13 +124,13 @@ func (sb *SocketBridge) Status() (status int32) {
 }
 
 // Transport
-func (sb *SocketBridge) Transport(ctx context.Context) (err error) {
+func (sb *SocketBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error) {
 
-	fmt.Printf("%s -> %s -> %s -> %s\n", sb.client.RemoteAddr(), ctx.Value(common.ContextEntry), sb.tunnel.Name(), sb.server)
+	fmt.Printf("%s -> %s -> %s -> %s\n", sb.client.RemoteAddr(), ctx.Value(common.ContextEntry), tunnel.Name(), sb.serverAddr)
 
 	atomic.StoreInt32(&sb.status, BridgeStatusConnecting)
 
-	server, err := sb.tunnel.Dial("tcp", sb.server)
+	server, err := tunnel.Dial("tcp", sb.serverAddr)
 	if err != nil {
 		atomic.StoreInt32(&sb.status, BridgeStatusFailed)
 		return

@@ -38,5 +38,6 @@ func init() {
 	if f := runc.Flags(); f != nil {
 		f.IntVarP(&flags.HttpPort, "with-http", "", flags.HttpPort, "with a http port")
 		f.IntVarP(&flags.SocketPort, "with-socket", "", flags.SocketPort, "with a socket port")
+		f.BoolVarP(&flags.OpenUI, "with-ui", "", flags.OpenUI, "show a terminal UI")
 	}
 }
