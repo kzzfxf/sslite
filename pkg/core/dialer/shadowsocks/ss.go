@@ -55,8 +55,8 @@ func NewShadowsocks(node, cipher, passwd string, timeout time.Duration) (ss *Sha
 }
 
 // NewShadowsocksWithURL
-func NewShadowsocksWithURL(ssURL string) (ss *ShadowSocks, err error) {
-	u, err := url.Parse(ssURL)
+func NewShadowsocksWithURL(URL string) (ss *ShadowSocks, err error) {
+	u, err := url.Parse(URL)
 	if err != nil {
 		return
 	}

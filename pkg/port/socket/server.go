@@ -41,7 +41,7 @@ func Start(ctx context.Context, network, addr string) (err error) {
 			break
 		}
 
-		serverAddr, err := socks.Handshake(conn)
+		dstAddr, err := socks.Handshake(conn)
 		if err != nil {
 			conn.Close()
 			continue
@@ -64,7 +64,7 @@ func Start(ctx context.Context, network, addr string) (err error) {
 
 		go func() {
 			defer cancel()
-			service.Teleport.ServeSocket(connCtx, conn, serverAddr.String())
+			service.Teleport.ServeSocket(connCtx, conn, dstAddr.String())
 		}()
 	}
 	return

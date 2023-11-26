@@ -20,10 +20,10 @@ import (
 )
 
 type RouteItem struct {
-	Server  string
-	IP      string
-	Tunnel  *Tunnel
-	Timeout time.Time
+	Hostname string
+	IP       string
+	Tunnel   *Tunnel
+	Timeout  time.Time
 }
 
 type Route struct {
@@ -39,23 +39,23 @@ func NewRoute() (r *Route) {
 }
 
 // Put
-func (r *Route) Put(server, ip string, tunnel *Tunnel, timeout time.Time) {
+func (r *Route) Put(hostname, ip string, tunnel *Tunnel, timeout time.Time) {
 	r.locker.Lock()
 	defer r.locker.Unlock()
-	r.rt[server] = RouteItem{Server: server, IP: ip, Tunnel: tunnel, Timeout: timeout}
+	r.rt[hostname] = RouteItem{Hostname: hostname, IP: ip, Tunnel: tunnel, Timeout: timeout}
 }
 
 // Get
-func (r *Route) Get(server string) (ip string, tunnel *Tunnel, exists bool) {
+func (r *Route) Get(hostname string) (ip string, tunnel *Tunnel, exists bool) {
 	r.locker.RLock()
-	item, ok := r.rt[server]
+	item, ok := r.rt[hostname]
 	r.locker.RUnlock()
 	if !ok {
 		return "", nil, false
 	} else if item.Timeout.Before(time.Now()) {
 		r.locker.Lock()
 		defer r.locker.Unlock()
-		delete(r.rt, server)
+		delete(r.rt, hostname)
 		return "", nil, false
 	}
 	return item.IP, item.Tunnel, true

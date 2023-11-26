@@ -15,14 +15,19 @@
 package core
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/gobwas/glob"
 )
 
+const (
+	PatternChars = "*?[!]{},\\"
+)
+
 type RulePattern struct {
 	Pattern  glob.Glob
-	Server   string
+	Hostname string
 	IP       string
 	Selector string
 }
@@ -43,58 +48,61 @@ func NewRules() (r *Rules) {
 }
 
 // Put
-func (r *Rules) Put(server, ip, selector string) {
-	if !strings.ContainsAny(server, "*?[!]{},\\") {
-		if _, ok := r.r0[server]; ok {
-			return
+func (r *Rules) Put(hostname, ip, selector string) {
+	if !strings.ContainsAny(hostname, PatternChars) {
+		if _, ok := r.r0[hostname]; !ok {
+			r.r0[hostname] = RulePattern{Hostname: hostname, IP: ip, Selector: selector}
 		}
-		r.r0[server] = RulePattern{Server: server, IP: ip, Selector: selector}
 	} else {
-		p, err := glob.Compile(server, '.')
+		p, err := glob.Compile(hostname, '.')
 		if err != nil {
+			fmt.Printf("invalid pattern: %s\n", hostname)
 			return
 		}
-		r.rp = append(r.rp, RulePattern{Pattern: p, Server: server, IP: ip, Selector: selector})
+		r.rp = append(r.rp, RulePattern{Pattern: p, Hostname: hostname, IP: ip, Selector: selector})
 	}
 }
 
 // Group
-func (r *Rules) Group(name string, server string, others ...string) {
+func (r *Rules) Group(name string, hostnames ...string) {
+	if len(hostnames) <= 0 {
+		return
+	}
 	if _, ok := r.rg[name]; !ok {
-		if _, ok := r.rg[name]; ok {
-			return
-		}
 		r.rg[name] = NewRulesGroup()
 	}
-	for _, server := range append(others, server) {
-		if !strings.ContainsAny(server, "*?[!]{},\\") {
-			r.rg[name].r0[server] = struct{}{}
-		} else {
-			p, err := glob.Compile(server, '.')
-			if err != nil {
-				return
+	for _, hostname := range hostnames {
+		if !strings.ContainsAny(hostname, PatternChars) {
+			if _, ok := r.rg[name].r0[hostname]; !ok {
+				r.rg[name].r0[hostname] = struct{}{}
 			}
-			r.rg[name].rp = append(r.rg[name].rp, p)
+		} else {
+			p, err := glob.Compile(hostname, '.')
+			if err != nil {
+				fmt.Printf("invalid pattern: %s\n", hostname)
+			} else {
+				r.rg[name].rp = append(r.rg[name].rp, p)
+			}
 		}
 	}
 }
 
 // Match
-func (r *Rules) Match(server string) (ip, selector string, ok bool) {
-	if route, ok := r.r0[server]; ok {
+func (r *Rules) Match(hostname string) (ip, selector string, ok bool) {
+	if route, ok := r.r0[hostname]; ok {
 		return route.IP, route.Selector, ok
 	}
 	for gn, rg := range r.rg {
 		if rp, ok := r.r0[gn]; !ok {
 			continue
 		} else {
-			if rg.Match(server) {
+			if rg.Match(hostname) {
 				return rp.IP, rp.Selector, true
 			}
 		}
 	}
 	for _, p := range r.rp {
-		if p.Pattern.Match(server) {
+		if p.Pattern.Match(hostname) {
 			return p.IP, p.Selector, true
 		}
 	}
@@ -115,12 +123,12 @@ func NewRulesGroup() (rg *RulesGroup) {
 }
 
 // Match
-func (rg *RulesGroup) Match(server string) (matched bool) {
-	if _, ok := rg.r0[server]; ok {
+func (rg *RulesGroup) Match(hostname string) (matched bool) {
+	if _, ok := rg.r0[hostname]; ok {
 		return true
 	}
 	for _, p := range rg.rp {
-		if p.Match(server) {
+		if p.Match(hostname) {
 			return true
 		}
 	}

@@ -16,7 +16,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -24,7 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kzzfxf/teleport/pkg/common"
 	"github.com/kzzfxf/teleport/pkg/core/internal"
 )
 
@@ -36,25 +34,33 @@ const (
 	BridgeStatusDisconnected int32 = 3
 )
 
+type DialFunc func(network, addr string) (conn net.Conn, err error)
+
 type Bridge interface {
 
 	// Status
 	Status() (status int32)
 
+	// InBound returns the source address.
+	InBound() (addr string)
+
+	// OutBound returns the destination address.
+	OutBound() (addr string)
+
 	// Transport
-	Transport(ctx context.Context, tunnel *Tunnel) (err error)
+	Transport(ctx context.Context, dial DialFunc) (err error)
 }
 
 type HttpBridge struct {
-	w          http.ResponseWriter
-	r          *http.Request
-	serverAddr string
-	status     int32
+	w       http.ResponseWriter
+	r       *http.Request
+	dstAddr string
+	status  int32
 }
 
 // NewHttpBridge
-func NewHttpBridge(w http.ResponseWriter, r *http.Request, serverAddr string) (hb *HttpBridge) {
-	return &HttpBridge{w: w, r: r, serverAddr: serverAddr}
+func NewHttpBridge(w http.ResponseWriter, r *http.Request, dstAddr string) (hb *HttpBridge) {
+	return &HttpBridge{w: w, r: r, dstAddr: dstAddr}
 }
 
 // Status
@@ -62,14 +68,21 @@ func (hb *HttpBridge) Status() (status int32) {
 	return atomic.LoadInt32(&hb.status)
 }
 
+// InBound
+func (hb *HttpBridge) InBound() (addr string) {
+	return hb.r.RemoteAddr
+}
+
+// OutBound
+func (hb *HttpBridge) OutBound() (addr string) {
+	return hb.dstAddr
+}
+
 // Transport
-func (hb *HttpBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error) {
-
-	fmt.Printf("%s -> %s -> %s -> %s\n", hb.r.RemoteAddr, ctx.Value(common.ContextEntry), tunnel.Name(), hb.serverAddr)
-
+func (hb *HttpBridge) Transport(ctx context.Context, dial DialFunc) (err error) {
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
-			return tunnel.Dial("tcp", hb.serverAddr)
+			return dial("tcp", hb.dstAddr)
 		},
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -86,7 +99,10 @@ func (hb *HttpBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error)
 
 	atomic.StoreInt32(&hb.status, BridgeStatusTransporting)
 
-	defer resp.Body.Close()
+	defer func() {
+		resp.Body.Close()
+		atomic.StoreInt32(&hb.status, BridgeStatusDisconnected)
+	}()
 
 	header := hb.w.Header()
 	for k, vv := range resp.Header {
@@ -102,20 +118,18 @@ func (hb *HttpBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error)
 	}
 	io.Copy(writer, resp.Body)
 
-	atomic.StoreInt32(&hb.status, BridgeStatusDisconnected)
-
 	return
 }
 
 type SocketBridge struct {
-	client     net.Conn
-	serverAddr string
-	status     int32
+	client  net.Conn
+	dstAddr string
+	status  int32
 }
 
 // NewSocketBridge
-func NewSocketBridge(client net.Conn, serverAddr string) (sb *SocketBridge) {
-	return &SocketBridge{client: client, serverAddr: serverAddr}
+func NewSocketBridge(client net.Conn, dstAddr string) (sb *SocketBridge) {
+	return &SocketBridge{client: client, dstAddr: dstAddr}
 }
 
 // Status
@@ -123,14 +137,22 @@ func (sb *SocketBridge) Status() (status int32) {
 	return atomic.LoadInt32(&sb.status)
 }
 
-// Transport
-func (sb *SocketBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error) {
+// InBound
+func (sb *SocketBridge) InBound() (addr string) {
+	return sb.client.RemoteAddr().String()
+}
 
-	fmt.Printf("%s -> %s -> %s -> %s\n", sb.client.RemoteAddr(), ctx.Value(common.ContextEntry), tunnel.Name(), sb.serverAddr)
+// OutBound
+func (sb *SocketBridge) OutBound() (addr string) {
+	return sb.dstAddr
+}
+
+// Transport
+func (sb *SocketBridge) Transport(ctx context.Context, dial DialFunc) (err error) {
 
 	atomic.StoreInt32(&sb.status, BridgeStatusConnecting)
 
-	server, err := tunnel.Dial("tcp", sb.serverAddr)
+	server, err := dial("tcp", sb.dstAddr)
 	if err != nil {
 		atomic.StoreInt32(&sb.status, BridgeStatusFailed)
 		return

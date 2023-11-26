@@ -154,7 +154,6 @@ func (tun *Tunnel) evaluate() {
 		}
 		tun.latency = latency
 	}
-	fmt.Printf("name: %s down: %d, up: %d, latency: %dms\n", tun.Name(), tun.downNBytes, tun.upNBytes, tun.latency.Milliseconds())
 }
 
 // Close

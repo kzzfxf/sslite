@@ -29,8 +29,8 @@ import (
 type teleport interface {
 	Init(config []byte) (err error)
 	ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request)
-	ServeHTTPS(ctx context.Context, client net.Conn, serverAddr string)
-	ServeSocket(ctx context.Context, client net.Conn, serverAddr string)
+	ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string)
+	ServeSocket(ctx context.Context, client net.Conn, dstAddr string)
 }
 
 type teleportImpl struct {
@@ -49,15 +49,13 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 		return
 	}
 	for _, route := range tp.config.Routes {
-		tp.engine.Rules().Put(route.Server, route.IP, route.Selector)
+		tp.engine.Rules().Put(route.Hostname, "", route.Selector)
 	}
 	for _, group := range tp.config.Groups {
-		if len(group.Servers) <= 0 {
+		if len(group.Hostnames) <= 0 {
 			continue
-		} else if len(group.Servers) == 1 {
-			tp.engine.Rules().Group(group.Name, group.Servers[0])
 		} else {
-			tp.engine.Rules().Group(group.Name, group.Servers[0], group.Servers[1:]...)
+			tp.engine.Rules().Group(group.Name, group.Hostnames...)
 		}
 	}
 	for _, proxy := range tp.config.Proxies {
@@ -70,7 +68,10 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 		for _, label := range proxy.Labels {
 			tunnel.SetLabel(label)
 		}
-		tunnel.SetupLatencyTester(tp.config.Latency.URL, time.Duration(tp.config.Latency.Timeout)*time.Millisecond)
+		// Ignore direct and reject
+		if proxy.Type != "direct" && proxy.Type != "reject" {
+			tunnel.SetupLatencyTester(tp.config.Latency.URL, time.Duration(tp.config.Latency.Timeout)*time.Millisecond)
+		}
 		tp.engine.AddTunnel(tunnel)
 		fmt.Printf("New tunnel %s\n", tunnel.Name())
 	}
@@ -85,10 +86,10 @@ func (tp *teleportImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r 
 	tp.engine.ServeHTTP(ctx, w, r)
 }
 
-func (tp *teleportImpl) ServeHTTPS(ctx context.Context, client net.Conn, serverAddr string) {
-	tp.engine.ServeSocket(ctx, client, serverAddr)
+func (tp *teleportImpl) ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string) {
+	tp.engine.ServeSocket(ctx, client, dstAddr)
 }
 
-func (tp *teleportImpl) ServeSocket(ctx context.Context, client net.Conn, serverAddr string) {
-	tp.engine.ServeSocket(ctx, client, serverAddr)
+func (tp *teleportImpl) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
+	tp.engine.ServeSocket(ctx, client, dstAddr)
 }

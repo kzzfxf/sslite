@@ -16,6 +16,8 @@ package direct
 
 import (
 	"net"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -32,6 +34,17 @@ func NewDirect(timeout time.Duration) (d *Direct) {
 		d.timeout = 0
 	}
 	return
+}
+
+// NewDirectWithURL
+func NewDirectWithURL(URL string) (d *Direct, err error) {
+	u, err := url.Parse(URL)
+	if err != nil {
+		return
+	}
+	query := u.Query()
+	timeout, _ := strconv.ParseInt(query.Get("timeout"), 10, 8)
+	return NewDirect(time.Duration(timeout) * time.Millisecond), nil
 }
 
 // Addr

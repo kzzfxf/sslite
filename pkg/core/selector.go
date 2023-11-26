@@ -15,6 +15,7 @@
 package core
 
 import (
+	"sort"
 	"strings"
 	"time"
 
@@ -39,17 +40,17 @@ func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel) {
 
 // match
 func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
-	server := domain
-	if server == "" {
-		server = ip
+	hostname := domain
+	if hostname == "" {
+		hostname = ip
 	}
 
-	_, tunnel, ok := tp.route.Get(server)
+	_, tunnel, ok := tp.route.Get(hostname)
 	if ok {
 		return tunnel
 	}
 
-	customIP, selector, ok := tp.rules.Match(server)
+	customIP, selector, ok := tp.rules.Match(hostname)
 	if !ok {
 		return nil
 	}
@@ -63,7 +64,7 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 
 	defer func() {
 		if tunnel != nil {
-			tp.route.Put(server, customIP, tunnel, time.Now().Add(600*time.Second))
+			tp.route.Put(hostname, customIP, tunnel, time.Now().Add(60*time.Second))
 		}
 	}()
 
@@ -71,9 +72,22 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 	if len(tunnels) <= 0 {
 		return
 	}
+
+	// Sort
+	sort.Slice(tunnels, func(i, j int) bool {
+		if tunnels[i].latency <= 0 && tunnels[j].latency > 0 {
+			return false
+		}
+		if tunnels[i].latency > 0 && tunnels[j].latency <= 0 {
+			return true
+		}
+		return tunnels[i].latency <= tunnels[j].latency
+	})
+
 	for _, tunnel := range tunnels {
 		return tunnel
 	}
+
 	return
 }
 

@@ -20,16 +20,9 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"time"
 
-	"github.com/kzzfxf/teleport/pkg/core/dialer/direct"
-	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
+	"github.com/kzzfxf/teleport/pkg/common"
 	"github.com/kzzfxf/teleport/pkg/core/internal"
-)
-
-var (
-	TunnelDirectID = "DIRECT"
-	TunnelRejectID = "REJECT"
 )
 
 type Engine struct {
@@ -48,12 +41,6 @@ func NewEngine() (tp *Engine) {
 		route:   NewRoute(),
 		rules:   NewRules(),
 	}
-	direct := NewTunnel("direct.proxy", direct.NewDirect(3000*time.Millisecond))
-	direct.SetLabel("direct")
-	tp.tunnels[TunnelDirectID] = direct
-	reject := NewTunnel("reject.proxy", reject.NewReject())
-	reject.SetLabel("reject")
-	tp.tunnels[TunnelRejectID] = reject
 	return
 }
 
@@ -99,20 +86,6 @@ func (tp *Engine) RemoveBridge(bridgeID string) {
 	delete(tp.bridges, bridgeID)
 }
 
-// Direct
-func (tp *Engine) Direct() (tun *Tunnel) {
-	tp.locker.RLock()
-	defer tp.locker.RUnlock()
-	return tp.tunnels[TunnelDirectID]
-}
-
-// Reject
-func (tp *Engine) Reject() (tun *Tunnel) {
-	tp.locker.RLock()
-	defer tp.locker.RUnlock()
-	return tp.tunnels[TunnelRejectID]
-}
-
 // ServeHTTP
 func (tp *Engine) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	tunnel := tp.MatchTunnel(r.Host)
@@ -124,13 +97,13 @@ func (tp *Engine) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.
 }
 
 // ServeSocket
-func (tp *Engine) ServeSocket(ctx context.Context, client net.Conn, serverAddr string) {
-	tunnel := tp.MatchTunnel(serverAddr)
+func (tp *Engine) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
+	tunnel := tp.MatchTunnel(dstAddr)
 	if tunnel == nil {
-		fmt.Printf("Select tunnel for %s failed\n", serverAddr)
+		fmt.Printf("Select tunnel for %s failed\n", dstAddr)
 		return
 	}
-	tp.transport(ctx, NewSocketBridge(client, serverAddr), tunnel)
+	tp.transport(ctx, NewSocketBridge(client, dstAddr), tunnel)
 }
 
 // transport
@@ -139,7 +112,13 @@ func (tp *Engine) transport(ctx context.Context, bridge Bridge, tunnel *Tunnel) 
 	defer func() {
 		tp.RemoveBridge(bridgeID)
 	}()
-	err := bridge.Transport(ctx, tunnel)
+
+	fmt.Printf("%s -> %s -> %s -> %s\n", bridge.InBound(), ctx.Value(common.ContextEntry), tunnel.Name(), bridge.OutBound())
+
+	dialFn := func(network, addr string) (net.Conn, error) {
+		return tunnel.Dial(network, addr)
+	}
+	err := bridge.Transport(ctx, dialFn)
 	if err != nil {
 		fmt.Printf("Transport failed, error = %s\n", err.Error())
 		return
