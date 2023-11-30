@@ -43,12 +43,19 @@ func init() {
 		return cmd.Help()
 		// return handler.OnTeleportHandler(cmd.Context(), flags, args)
 	}
+	teleportc.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		return handler.OnGlobalBeforeHandler(cmd.Context(), gflags, args)
+	}
+	teleportc.PersistentPostRunE = func(cmd *cobra.Command, args []string) error {
+		return handler.OnGlobalAfterHandler(cmd.Context(), gflags, args)
+	}
 	// Flags
 	// if f := teleportc.Flags(); f != nil {
 	//     f.StringVarP(&flags.Test, "test", "t", flags.Test, "a test flag")
 	// }
 	if pf := teleportc.PersistentFlags(); pf != nil {
-		pf.StringVarP(&gflags.ConfigFile, "config", "c", gflags.ConfigFile, "a config file")
+		pf.StringVarP(&gflags.BaseConfigFile, "config", "c", gflags.BaseConfigFile, "base config file")
+		pf.StringVarP(&gflags.RulesConfigFile, "config-rules", "r", gflags.RulesConfigFile, "rules config file")
 	}
 }
 

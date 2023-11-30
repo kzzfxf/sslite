@@ -19,11 +19,14 @@ import (
 )
 
 type GlobalFlags struct {
-	ConfigFile string
+	BaseConfigFile  string
+	RulesConfigFile string
 }
 
 func NewGlobalFlags() (gflags *GlobalFlags) {
 	gflags = &GlobalFlags{}
+	gflags.BaseConfigFile = "./conf/teleport.json"
+	gflags.RulesConfigFile = "./conf/rules.json"
 	return
 }
 
@@ -38,5 +41,13 @@ func NewTeleportFlags(gflags *GlobalFlags) (flags *TeleportFlags) {
 }
 
 func OnTeleportHandler(ctx context.Context, flags *TeleportFlags, args []string) (err error) {
+	return
+}
+
+func OnGlobalBeforeHandler(ctx context.Context, flags *GlobalFlags, args []string) (err error) {
+	return
+}
+
+func OnGlobalAfterHandler(ctx context.Context, flags *GlobalFlags, args []string) (err error) {
 	return
 }

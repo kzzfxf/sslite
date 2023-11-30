@@ -1,0 +1,15 @@
+{
+    "global": "TEST",
+    "latency": {
+        "url": "http://cp.cloudflare.com/generate_204",
+        "timeout": 3000
+    },
+    "proxies": [
+        {
+            "name": "TEST",
+            "type": "ss",
+            "url": "ss://xxxx:xx?cipher=xxxxxx&password=xxxxxx&timeout=3000",
+            "labels": ["ss", "shadowsocks", "overseas"]
+        }
+    ]
+}

@@ -16,49 +16,46 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"time"
 
-	json "github.com/json-iterator/go"
 	"github.com/kzzfxf/teleport/pkg/config"
 	"github.com/kzzfxf/teleport/pkg/core"
 )
 
 type teleport interface {
-	Init(config []byte) (err error)
+	Init(conf *config.Config, rules *config.Rules) (err error)
 	ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string)
 	ServeSocket(ctx context.Context, client net.Conn, dstAddr string)
 }
 
 type teleportImpl struct {
-	config config.Config
+	conf   *config.Config
 	engine *core.Engine
 }
 
-var Teleport teleport = &teleportImpl{
-	config: config.Config{},
-	engine: core.NewEngine(),
-}
+var Teleport teleport = &teleportImpl{}
 
-func (tp *teleportImpl) Init(config []byte) (err error) {
-	err = json.Unmarshal(config, &tp.config)
-	if err != nil {
-		return
+func (tp *teleportImpl) Init(conf *config.Config, rules *config.Rules) (err error) {
+	engine := core.NewEngine()
+
+	for _, route := range rules.Routes {
+		if route.Selector == core.BuiltinTunnelGlobalName {
+			engine.Rules().Put(route.Hostname, "", conf.Global)
+		} else {
+			engine.Rules().Put(route.Hostname, "", route.Selector)
+		}
 	}
-	for _, route := range tp.config.Routes {
-		tp.engine.Rules().Put(route.Hostname, "", route.Selector)
-	}
-	for _, group := range tp.config.Groups {
+	for _, group := range rules.Groups {
 		if len(group.Hostnames) <= 0 {
 			continue
 		} else {
-			tp.engine.Rules().Group(group.Name, group.Hostnames...)
+			engine.Rules().Group(group.Name, group.Hostnames...)
 		}
 	}
-	for _, proxy := range tp.config.Proxies {
+	for _, proxy := range conf.Proxies {
 		dialer, err := core.NewDialerWithURL(proxy.Type, proxy.URL)
 		if err != nil {
 			return err
@@ -70,17 +67,16 @@ func (tp *teleportImpl) Init(config []byte) (err error) {
 		}
 		// Ignore direct and reject
 		if proxy.Type != "direct" && proxy.Type != "reject" {
-			tunnel.SetupLatencyTester(tp.config.Latency.URL, time.Duration(tp.config.Latency.Timeout)*time.Millisecond)
+			tunnel.SetupLatencyTester(conf.Latency.URL, time.Duration(conf.Latency.Timeout)*time.Millisecond)
 		}
-		tp.engine.AddTunnel(tunnel)
-		fmt.Printf("New tunnel %s\n", tunnel.Name())
+		engine.AddTunnel(tunnel)
 	}
+
+	tp.conf = conf
+	tp.engine = engine
+
 	return
 }
-
-// func (tp *teleportImpl) ImportConfig() {
-
-// }
 
 func (tp *teleportImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	tp.engine.ServeHTTP(ctx, w, r)

@@ -42,11 +42,27 @@ func NewRunFlags(gflags *GlobalFlags) (flags *RunFlags) {
 }
 
 func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err error) {
-	config, err := os.ReadFile(flags.ConfigFile)
+	data0, err := os.ReadFile(flags.BaseConfigFile)
 	if err != nil {
 		return
 	}
-	err = service.Teleport.Init(config)
+
+	baseConf, err := service.Config.Load(data0)
+	if err != nil {
+		return
+	}
+
+	data1, err := os.ReadFile(flags.RulesConfigFile)
+	if err != nil {
+		return
+	}
+
+	rulesConf, err := service.Config.LoadRules(data1)
+	if err != nil {
+		return
+	}
+
+	err = service.Teleport.Init(baseConf, rulesConf)
 	if err != nil {
 		return
 	}

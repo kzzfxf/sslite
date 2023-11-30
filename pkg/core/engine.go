@@ -19,10 +19,20 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/kzzfxf/teleport/pkg/common"
+	"github.com/kzzfxf/teleport/pkg/core/dialer/direct"
+	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
 	"github.com/kzzfxf/teleport/pkg/core/internal"
+)
+
+const (
+	BuiltinTunnelGlobalName = "GLOBAL"
+	BuiltinTunnelDirectName = "DIRECT"
+	BuiltinTunnelRejectName = "REJECT"
 )
 
 type Engine struct {
@@ -41,6 +51,9 @@ func NewEngine() (tp *Engine) {
 		route:   NewRoute(),
 		rules:   NewRules(),
 	}
+	// Builtin tunnels
+	tp.tunnels[BuiltinTunnelDirectName] = NewTunnel(BuiltinTunnelDirectName, direct.NewDirect(3000*time.Millisecond))
+	tp.tunnels[BuiltinTunnelRejectName] = NewTunnel(BuiltinTunnelRejectName, reject.NewReject())
 	return
 }
 
@@ -52,6 +65,26 @@ func (tp *Engine) Route() (r *Route) {
 // Rules
 func (tp *Engine) Rules() (r *Rules) {
 	return tp.rules
+}
+
+// GetDirectTunnel
+func (tp *Engine) GetDirectTunnel() (tunnel *Tunnel) {
+	tunnel, _ = tp.GetTunnel(BuiltinTunnelDirectName)
+	return
+}
+
+// GetRejectTunnel
+func (tp *Engine) GetRejectTunnel() (tunnel *Tunnel) {
+	tunnel, _ = tp.GetTunnel(BuiltinTunnelRejectName)
+	return
+}
+
+// GetTunnel
+func (tp *Engine) GetTunnel(tunnelID string) (tunnel *Tunnel, ok bool) {
+	tp.locker.RLock()
+	defer tp.locker.RUnlock()
+	tunnel, ok = tp.tunnels[tunnelID]
+	return
 }
 
 // AddTunnel
@@ -68,6 +101,14 @@ func (tp *Engine) RemoveTunnel(tunnelID string) {
 	tp.locker.Lock()
 	defer tp.locker.Unlock()
 	delete(tp.tunnels, tunnelID)
+}
+
+// GetBridge
+func (tp *Engine) GetBridge(bridgeID string) (bridge Bridge, ok bool) {
+	tp.locker.RLock()
+	defer tp.locker.RUnlock()
+	bridge, ok = tp.bridges[bridgeID]
+	return
 }
 
 // AddBridge
@@ -88,12 +129,16 @@ func (tp *Engine) RemoveBridge(bridgeID string) {
 
 // ServeHTTP
 func (tp *Engine) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	tunnel := tp.MatchTunnel(r.Host)
+	dstAddr := r.Host
+	if !strings.Contains(dstAddr, ":") {
+		dstAddr = fmt.Sprintf("%s:%d", dstAddr, 80)
+	}
+	tunnel := tp.MatchTunnel(dstAddr)
 	if tunnel == nil {
-		fmt.Printf("Select tunnel for %s failed\n", r.Host)
+		fmt.Printf("Select tunnel for %s failed\n", dstAddr)
 		return
 	}
-	tp.transport(ctx, NewHttpBridge(w, r, r.Host), tunnel)
+	tp.transport(ctx, NewHttpBridge(w, r, dstAddr), tunnel)
 }
 
 // ServeSocket
@@ -120,7 +165,7 @@ func (tp *Engine) transport(ctx context.Context, bridge Bridge, tunnel *Tunnel) 
 	}
 	err := bridge.Transport(ctx, dialFn)
 	if err != nil {
-		fmt.Printf("Transport failed, error = %s\n", err.Error())
+		fmt.Printf("Transport %s->%s failed, error = %s\n", bridge.InBound(), bridge.OutBound(), err.Error())
 		return
 	}
 }

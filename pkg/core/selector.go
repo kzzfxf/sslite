@@ -55,18 +55,24 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 		return nil
 	}
 
+	defer func() {
+		if tunnel != nil {
+			tp.route.Put(hostname, customIP, tunnel, time.Now().Add(60*time.Second))
+		}
+	}()
+
+	if selector == BuiltinTunnelDirectName {
+		return tp.GetDirectTunnel()
+	} else if selector == BuiltinTunnelRejectName {
+		return tp.GetRejectTunnel()
+	}
+
 	var labels []string
 	labels = append(labels, strings.Split(selector, ",")...)
 
 	if len(labels) <= 0 {
 		return
 	}
-
-	defer func() {
-		if tunnel != nil {
-			tp.route.Put(hostname, customIP, tunnel, time.Now().Add(60*time.Second))
-		}
-	}()
 
 	tunnels := tp.SelectTunnels(SelectOpAnd, labels...)
 	if len(tunnels) <= 0 {
@@ -75,13 +81,13 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 
 	// Sort
 	sort.Slice(tunnels, func(i, j int) bool {
-		if tunnels[i].latency <= 0 && tunnels[j].latency > 0 {
+		if tunnels[i].latency.value <= 0 && tunnels[j].latency.value > 0 {
 			return false
 		}
-		if tunnels[i].latency > 0 && tunnels[j].latency <= 0 {
+		if tunnels[i].latency.value > 0 && tunnels[j].latency.value <= 0 {
 			return true
 		}
-		return tunnels[i].latency <= tunnels[j].latency
+		return tunnels[i].latency.value <= tunnels[j].latency.value
 	})
 
 	for _, tunnel := range tunnels {

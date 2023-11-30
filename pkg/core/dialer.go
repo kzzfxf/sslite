@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/kzzfxf/teleport/pkg/core/dialer/direct"
-	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
 	"github.com/kzzfxf/teleport/pkg/core/dialer/shadowsocks"
 )
 
@@ -40,12 +38,6 @@ var (
 )
 
 func init() {
-	dialers["direct"] = func(URL string) (dialer Dialer, err error) {
-		return direct.NewDirectWithURL(URL)
-	}
-	dialers["reject"] = func(URL string) (dialer Dialer, err error) {
-		return reject.NewReject(), nil
-	}
 	dialers["ss"] = func(URL string) (dialer Dialer, err error) {
 		return shadowsocks.NewShadowsocksWithURL(URL)
 	}
