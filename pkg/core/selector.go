@@ -61,7 +61,9 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 		}
 	}()
 
-	if selector == BuiltinTunnelDirectName {
+	if selector == BuiltinTunnelGlobalName {
+		selector = tp.global
+	} else if selector == BuiltinTunnelDirectName {
 		return tp.GetDirectTunnel()
 	} else if selector == BuiltinTunnelRejectName {
 		return tp.GetRejectTunnel()

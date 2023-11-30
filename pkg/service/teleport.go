@@ -18,7 +18,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/kzzfxf/teleport/pkg/config"
 	"github.com/kzzfxf/teleport/pkg/core"
@@ -32,49 +31,17 @@ type teleport interface {
 }
 
 type teleportImpl struct {
-	conf   *config.Config
 	engine *core.Engine
 }
 
 var Teleport teleport = &teleportImpl{}
 
-func (tp *teleportImpl) Init(conf *config.Config, rules *config.Rules) (err error) {
-	engine := core.NewEngine()
-
-	for _, route := range rules.Routes {
-		if route.Selector == core.BuiltinTunnelGlobalName {
-			engine.Rules().Put(route.Hostname, "", conf.Global)
-		} else {
-			engine.Rules().Put(route.Hostname, "", route.Selector)
-		}
+func (tp *teleportImpl) Init(conf *config.Config, ruleConf *config.Rules) (err error) {
+	engine, err := core.NewEngine(conf, ruleConf)
+	if err != nil {
+		return
 	}
-	for _, group := range rules.Groups {
-		if len(group.Hostnames) <= 0 {
-			continue
-		} else {
-			engine.Rules().Group(group.Name, group.Hostnames...)
-		}
-	}
-	for _, proxy := range conf.Proxies {
-		dialer, err := core.NewDialerWithURL(proxy.Type, proxy.URL)
-		if err != nil {
-			return err
-		}
-		tunnel := core.NewTunnel(proxy.Name, dialer)
-		tunnel.SetLabel(dialer.Addr())
-		for _, label := range proxy.Labels {
-			tunnel.SetLabel(label)
-		}
-		// Ignore direct and reject
-		if proxy.Type != "direct" && proxy.Type != "reject" {
-			tunnel.SetupLatencyTester(conf.Latency.URL, time.Duration(conf.Latency.Timeout)*time.Millisecond)
-		}
-		engine.AddTunnel(tunnel)
-	}
-
-	tp.conf = conf
 	tp.engine = engine
-
 	return
 }
 

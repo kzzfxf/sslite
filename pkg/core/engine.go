@@ -24,9 +24,11 @@ import (
 	"time"
 
 	"github.com/kzzfxf/teleport/pkg/common"
+	"github.com/kzzfxf/teleport/pkg/config"
 	"github.com/kzzfxf/teleport/pkg/core/dialer/direct"
 	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
 	"github.com/kzzfxf/teleport/pkg/core/internal"
+	"github.com/kzzfxf/teleport/pkg/core/rules"
 )
 
 const (
@@ -38,22 +40,45 @@ const (
 type Engine struct {
 	bridges map[string]Bridge
 	tunnels map[string]*Tunnel
+	conf    *config.Config
+	global  string
 	route   *Route
-	rules   *Rules
+	rules   *rules.Rules
 	locker  sync.RWMutex
 }
 
 // NewEngine
-func NewEngine() (tp *Engine) {
+func NewEngine(conf *config.Config, ruleConf *config.Rules) (tp *Engine, err error) {
 	tp = &Engine{
 		bridges: make(map[string]Bridge),
 		tunnels: make(map[string]*Tunnel),
+		conf:    conf,
+		global:  conf.Global,
 		route:   NewRoute(),
-		rules:   NewRules(),
 	}
 	// Builtin tunnels
 	tp.tunnels[BuiltinTunnelDirectName] = NewTunnel(BuiltinTunnelDirectName, direct.NewDirect(3000*time.Millisecond))
 	tp.tunnels[BuiltinTunnelRejectName] = NewTunnel(BuiltinTunnelRejectName, reject.NewReject())
+	// Init engine
+	for _, proxy := range conf.Proxies {
+		dialer, err := NewDialerWithURL(proxy.Type, proxy.URL)
+		if err != nil {
+			return nil, err
+		}
+		tunnel := NewTunnel(proxy.Name, dialer)
+		tunnel.SetLabel(dialer.Addr())
+		for _, label := range proxy.Labels {
+			tunnel.SetLabel(label)
+		}
+		// Ignore direct and reject
+		if proxy.Type != "direct" && proxy.Type != "reject" {
+			tunnel.SetupLatencyTester(conf.Latency.URL, time.Duration(conf.Latency.Timeout)*time.Millisecond)
+		}
+		tp.AddTunnel(tunnel)
+	}
+	// Init rules
+	tp.rules = rules.NewRules(ruleConf)
+
 	return
 }
 
@@ -63,7 +88,7 @@ func (tp *Engine) Route() (r *Route) {
 }
 
 // Rules
-func (tp *Engine) Rules() (r *Rules) {
+func (tp *Engine) Rules() (r *rules.Rules) {
 	return tp.rules
 }
 
