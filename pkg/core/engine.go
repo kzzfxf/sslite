@@ -201,7 +201,7 @@ func (tp *Engine) transport(ctx context.Context, bridge Bridge, tunnel *Tunnel) 
 	}
 	err := bridge.Transport(ctx, dialFn)
 	if err != nil {
-		logkit.Error("transport failed", logkit.WithAttr("error", err), logkit.WithAttr("inbound", bridge.InBound()), logkit.WithAttr("outbound", bridge.OutBound()), logkit.WithAttr("tunnel", tunnel.Name()))
+		logkit.Error("transport failed", logkit.WithAttr("error", err), logkit.WithAttr("inbound", bridge.InBound()), logkit.WithAttr("outbound", bridge.OutBound()), logkit.WithAttr("outbound_real", bridge.OutBoundReal()), logkit.WithAttr("tunnel", tunnel.Name()))
 		return
 	}
 }

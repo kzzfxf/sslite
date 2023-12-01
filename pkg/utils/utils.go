@@ -77,11 +77,9 @@ func IsValidAddr(addr string) bool {
 
 // LookupIP
 func LookupIP(domain string) net.IP {
-	IPs, err := net.LookupIP(domain)
+	addr, err := net.ResolveIPAddr("ip", domain)
 	if err == nil {
-		for _, v := range IPs {
-			return v
-		}
+		return addr.IP
 	}
 	return nil
 }
