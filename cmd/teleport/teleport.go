@@ -33,8 +33,11 @@ func init() {
 	//    flags = handler.NewTeleportFlags(gflags)
 	// )
 	teleportc.Use = "teleport"
-	teleportc.Short = "A short description"
-	teleportc.Long = "A long description"
+	teleportc.Short = "Teleport is a proxy client"
+	teleportc.Long = `Teleport is utilized to connect to remote proxy services, 
+offering network proxy capabilities. It provides proxy routing based on rules such as domain names, 
+wildcard domains, grouped domains, GeoIP, IP-CIDR, and other criteria. Additionally, 
+it supports various commonly used proxy protocols.`
 	teleportc.Version = Version
 	teleportc.SilenceUsage = true
 	teleportc.CompletionOptions.HiddenDefaultCmd = true

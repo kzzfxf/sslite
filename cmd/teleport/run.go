@@ -28,8 +28,8 @@ func init() {
 		flags = handler.NewRunFlags(gflags)
 	)
 	runc.Use = "run"
-	runc.Short = "A short description"
-	runc.Long = "A long description"
+	runc.Short = "Start the proxy process"
+	runc.Long = "Start the proxy process and listen for proxy connections."
 	// Events
 	runc.RunE = func(cmd *cobra.Command, args []string) error {
 		return handler.OnRunHandler(cmd.Context(), flags, args)
