@@ -24,7 +24,7 @@ import (
 )
 
 type teleport interface {
-	Init(conf *config.Config, rules *config.Rules) (err error)
+	Init(conf *config.Config, rulesConf *config.Rules) (err error)
 	ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string)
 	ServeSocket(ctx context.Context, client net.Conn, dstAddr string)
@@ -36,8 +36,8 @@ type teleportImpl struct {
 
 var Teleport teleport = &teleportImpl{}
 
-func (tp *teleportImpl) Init(conf *config.Config, ruleConf *config.Rules) (err error) {
-	engine, err := core.NewEngine(conf, ruleConf)
+func (tp *teleportImpl) Init(conf *config.Config, rulesConf *config.Rules) (err error) {
+	engine, err := core.NewEngine(conf, rulesConf)
 	if err != nil {
 		return
 	}

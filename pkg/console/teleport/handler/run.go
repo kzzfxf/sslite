@@ -47,7 +47,7 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 		return
 	}
 
-	baseConf, err := service.Config.Load(data0)
+	conf, err := service.Config.Load(data0)
 	if err != nil {
 		return
 	}
@@ -62,7 +62,7 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 		return
 	}
 
-	err = service.Teleport.Init(baseConf, rulesConf)
+	err = service.Teleport.Init(conf, rulesConf)
 	if err != nil {
 		return
 	}

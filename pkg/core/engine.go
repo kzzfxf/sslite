@@ -53,7 +53,7 @@ type Engine struct {
 }
 
 // NewEngine
-func NewEngine(conf *config.Config, ruleConf *config.Rules) (tp *Engine, err error) {
+func NewEngine(conf *config.Config, rulesConf *config.Rules) (tp *Engine, err error) {
 	tp = &Engine{
 		bridges: make(map[string]Bridge),
 		tunnels: make(map[string]*Tunnel),
@@ -80,7 +80,7 @@ func NewEngine(conf *config.Config, ruleConf *config.Rules) (tp *Engine, err err
 		tp.AddTunnel(tunnel)
 	}
 	// Init rules
-	tp.rules = rules.NewRules(ruleConf)
+	tp.rules = rules.NewRules(rulesConf)
 
 	return
 }
