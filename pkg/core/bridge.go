@@ -27,11 +27,11 @@ import (
 )
 
 const (
-	BridgeStatusFailed       int32 = -1
-	BridgeStatusReady        int32 = 0
-	BridgeStatusConnecting   int32 = 1
-	BridgeStatusTransporting int32 = 2
-	BridgeStatusDisconnected int32 = 3
+	BridgeStatusFailed     int32 = -1
+	BridgeStatusReady      int32 = 0
+	BridgeStatusConnect    int32 = 1
+	BridgeStatusTraffic    int32 = 2
+	BridgeStatusDisconnect int32 = 3
 )
 
 type DialFunc func(network, addr string) (conn net.Conn, err error)
@@ -47,6 +47,9 @@ type Bridge interface {
 	// OutBound returns the destination address.
 	OutBound() (addr string)
 
+	// OutBoundReal returns the real destination address.
+	OutBoundReal() (addr string)
+
 	// Transport
 	Transport(ctx context.Context, dial DialFunc) (err error)
 }
@@ -55,12 +58,13 @@ type HttpBridge struct {
 	w       http.ResponseWriter
 	r       *http.Request
 	dstAddr string
+	forward string
 	status  int32
 }
 
 // NewHttpBridge
-func NewHttpBridge(w http.ResponseWriter, r *http.Request, dstAddr string) (hb *HttpBridge) {
-	return &HttpBridge{w: w, r: r, dstAddr: dstAddr}
+func NewHttpBridge(w http.ResponseWriter, r *http.Request, dstAddr, forward string) (hb *HttpBridge) {
+	return &HttpBridge{w: w, r: r, dstAddr: dstAddr, forward: forward}
 }
 
 // Status
@@ -78,18 +82,26 @@ func (hb *HttpBridge) OutBound() (addr string) {
 	return hb.dstAddr
 }
 
+// OutBoundReal
+func (hb *HttpBridge) OutBoundReal() (addr string) {
+	if hb.forward != "" {
+		return hb.forward
+	}
+	return hb.dstAddr
+}
+
 // Transport
 func (hb *HttpBridge) Transport(ctx context.Context, dial DialFunc) (err error) {
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
-			return dial("tcp", hb.dstAddr)
+			return dial("tcp", hb.OutBoundReal())
 		},
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
 
-	atomic.StoreInt32(&hb.status, BridgeStatusConnecting)
+	atomic.StoreInt32(&hb.status, BridgeStatusConnect)
 
 	resp, err := transport.RoundTrip(hb.r)
 	if err != nil {
@@ -97,11 +109,11 @@ func (hb *HttpBridge) Transport(ctx context.Context, dial DialFunc) (err error) 
 		return
 	}
 
-	atomic.StoreInt32(&hb.status, BridgeStatusTransporting)
+	atomic.StoreInt32(&hb.status, BridgeStatusTraffic)
 
 	defer func() {
 		resp.Body.Close()
-		atomic.StoreInt32(&hb.status, BridgeStatusDisconnected)
+		atomic.StoreInt32(&hb.status, BridgeStatusDisconnect)
 	}()
 
 	header := hb.w.Header()
@@ -124,12 +136,13 @@ func (hb *HttpBridge) Transport(ctx context.Context, dial DialFunc) (err error) 
 type SocketBridge struct {
 	client  net.Conn
 	dstAddr string
+	forward string
 	status  int32
 }
 
 // NewSocketBridge
-func NewSocketBridge(client net.Conn, dstAddr string) (sb *SocketBridge) {
-	return &SocketBridge{client: client, dstAddr: dstAddr}
+func NewSocketBridge(client net.Conn, dstAddr, forward string) (sb *SocketBridge) {
+	return &SocketBridge{client: client, dstAddr: dstAddr, forward: forward}
 }
 
 // Status
@@ -147,25 +160,33 @@ func (sb *SocketBridge) OutBound() (addr string) {
 	return sb.dstAddr
 }
 
+// OutBoundReal
+func (sb *SocketBridge) OutBoundReal() (addr string) {
+	if sb.forward != "" {
+		return sb.forward
+	}
+	return sb.dstAddr
+}
+
 // Transport
 func (sb *SocketBridge) Transport(ctx context.Context, dial DialFunc) (err error) {
 
-	atomic.StoreInt32(&sb.status, BridgeStatusConnecting)
+	atomic.StoreInt32(&sb.status, BridgeStatusConnect)
 
-	server, err := dial("tcp", sb.dstAddr)
+	server, err := dial("tcp", sb.OutBoundReal())
 	if err != nil {
 		atomic.StoreInt32(&sb.status, BridgeStatusFailed)
 		return
 	}
 	defer func() {
 		server.Close()
-		atomic.StoreInt32(&sb.status, BridgeStatusDisconnected)
+		atomic.StoreInt32(&sb.status, BridgeStatusDisconnect)
 	}()
 
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	atomic.StoreInt32(&sb.status, BridgeStatusTransporting)
+	atomic.StoreInt32(&sb.status, BridgeStatusTraffic)
 
 	go func() {
 		defer wg.Done()

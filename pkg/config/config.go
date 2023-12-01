@@ -39,7 +39,7 @@ type Rules struct {
 
 type Route struct {
 	Rule     string `json:"rule"`
-	Forward  string `json:"forward"`
+	Forward  string `json:"forward,omitempty"`
 	Selector string `json:"selector"`
 }
 

@@ -813,10 +813,6 @@
             "selector": "REJECT"
         },
         {
-            "rule": "**.smaato.net",
-            "selector": "REJECT"
-        },
-        {
             "rule": "**.smartadserver.com",
             "selector": "REJECT"
         },
@@ -2721,10 +2717,6 @@
             "selector": "REJECT"
         },
         {
-            "rule": "**.tuitiger.com",
-            "selector": "REJECT"
-        },
-        {
             "rule": "**.urlaw.cn",
             "selector": "REJECT"
         },
@@ -3461,14 +3453,6 @@
             "selector": "GLOBAL"
         },
         {
-            "rule": "**.youtube.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "youtubei.googleapis.com",
-            "selector": "GLOBAL"
-        },
-        {
             "rule": "**.netflix.com",
             "selector": "GLOBAL"
         },
@@ -3690,22 +3674,6 @@
         },
         {
             "rule": "d1v5ir2lpwr8os.cloudfront.net",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.bahamut.com.tw",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.gamer.com.tw",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "gamer-cds.cdn.hinet.net",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "gamer2-cds.cdn.hinet.net",
             "selector": "GLOBAL"
         },
         {
@@ -3933,34 +3901,6 @@
             "selector": "GLOBAL"
         },
         {
-            "rule": "**.netflix.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.netflix.net",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.nflxext.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.nflximg.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.nflximg.net",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.nflxso.net",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.nflxvideo.net",
-            "selector": "GLOBAL"
-        },
-        {
             "rule": "**.netflixdnstest0.com",
             "selector": "GLOBAL"
         },
@@ -4010,10 +3950,6 @@
         },
         {
             "rule": "**.nimg.jp",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.socdm.com",
             "selector": "GLOBAL"
         },
         {
@@ -4078,14 +4014,6 @@
         },
         {
             "rule": "dfp6rglgjqszk.cloudfront.net",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.youtube.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "youtubei.googleapis.com",
             "selector": "GLOBAL"
         },
         {
@@ -4214,26 +4142,6 @@
         },
         {
             "rule": "**.vine.co",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.t.me",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.tdesktop.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.telegra.ph",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.telegram.me",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.telegram.org",
             "selector": "GLOBAL"
         },
         {
@@ -4945,10 +4853,6 @@
             "selector": "GLOBAL"
         },
         {
-            "rule": "**.nicovideo.jp",
-            "selector": "GLOBAL"
-        },
-        {
             "rule": "**.nii.ac.jp",
             "selector": "GLOBAL"
         },
@@ -5193,19 +5097,11 @@
             "selector": "GLOBAL"
         },
         {
-            "rule": "**.soundcloud.com",
-            "selector": "GLOBAL"
-        },
-        {
             "rule": "**.ssrcloud.org",
             "selector": "GLOBAL"
         },
         {
             "rule": "**.startpage.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.steamcommunity.com",
             "selector": "GLOBAL"
         },
         {
@@ -5637,10 +5533,6 @@
             "selector": "GLOBAL"
         },
         {
-            "rule": "**.viu.tv",
-            "selector": "GLOBAL"
-        },
-        {
             "rule": "**.vk.com",
             "selector": "GLOBAL"
         },
@@ -5882,10 +5774,6 @@
         },
         {
             "rule": "**.livefilestore.com",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "**.onedrive.com",
             "selector": "GLOBAL"
         },
         {
@@ -6189,10 +6077,6 @@
             "selector": "DIRECT"
         },
         {
-            "rule": "**.akadns.net",
-            "selector": "DIRECT"
-        },
-        {
             "rule": "**.alibaba.com",
             "selector": "DIRECT"
         },
@@ -6257,54 +6141,6 @@
             "selector": "DIRECT"
         },
         {
-            "rule": "**.aaplimg.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.apple.co",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.apple.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.apple-cloudkit.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.appstore.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.cdn-apple.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.crashlytics.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.icloud.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.icloud-content.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.me.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.mzstatic.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "www-cdn.icloud.com.akadns.net",
-            "selector": "DIRECT"
-        },
-        {
             "rule": "**.baidu.com",
             "selector": "DIRECT"
         },
@@ -6318,30 +6154,6 @@
         },
         {
             "rule": "**.yunjiasu-cdn.net",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.acgvideo.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.biliapi.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.biliapi.net",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.bilibili.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.bilibili.tv",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.hdslb.com",
             "selector": "DIRECT"
         },
         {
@@ -6517,31 +6329,7 @@
             "selector": "DIRECT"
         },
         {
-            "rule": "**.msecnd.net",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.office365.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.outlook.com",
-            "selector": "DIRECT"
-        },
-        {
             "rule": "**.s-microsoft.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.visualstudio.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.windows.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.windowsupdate.com",
             "selector": "DIRECT"
         },
         {
@@ -6617,10 +6405,6 @@
             "selector": "DIRECT"
         },
         {
-            "rule": "**.steampowered.com",
-            "selector": "DIRECT"
-        },
-        {
             "rule": "**.steam-chat.com",
             "selector": "DIRECT"
         },
@@ -6634,10 +6418,6 @@
         },
         {
             "rule": "**.steamcontent.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.steamstatic.com",
             "selector": "DIRECT"
         },
         {
@@ -6974,10 +6754,6 @@
         },
         {
             "rule": "**.libguides.com",
-            "selector": "DIRECT"
-        },
-        {
-            "rule": "**.madsrevolution.net",
             "selector": "DIRECT"
         },
         {
@@ -7543,6 +7319,10 @@
         {
             "rule": "images-cn.ssl-images-amazon.com",
             "selector": "DIRECT"
+        },
+        {
+            "rule": "**.hk",
+            "selector": "HONGKONG"
         },
         {
             "rule": "group:youtube",
@@ -8537,42 +8317,6 @@
             "selector": "GLOBAL"
         },
         {
-            "rule": "ip-cidr:23.246.0.0/18",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:37.77.184.0/21",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:45.57.0.0/17",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:64.120.128.0/17",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:66.197.128.0/17",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:108.175.32.0/20",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:192.173.64.0/18",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:198.38.96.0/19",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:198.45.48.0/20",
-            "selector": "GLOBAL"
-        },
-        {
             "rule": "ip-cidr:3.123.36.126/32",
             "selector": "GLOBAL"
         },
@@ -8606,42 +8350,6 @@
         },
         {
             "rule": "ip-cidr:169.45.248.118/32",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:91.108.4.0/22",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:91.108.8.0/22",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:91.108.12.0/22",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:91.108.16.0/22",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:91.108.56.0/22",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:149.154.160.0/20",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:2001:b28:f23d::/48",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:2001:b28:f23f::/48",
-            "selector": "GLOBAL"
-        },
-        {
-            "rule": "ip-cidr:2001:67c:4e8::/48",
             "selector": "GLOBAL"
         },
         {
@@ -8701,10 +8409,6 @@
             "selector": "DIRECT"
         },
         {
-            "rule": "**.hk",
-            "selector": "HONGKONG"
-        },
-        {
             "rule": "**",
             "selector": "GLOBAL"
         }
@@ -8712,7 +8416,11 @@
     "groups": [
         {
             "name": "youtube",
-            "hostnames": ["**.youtube.com", "**.googlevideo.com", "youtubei.googleapis.com"]
+            "hostnames": [
+                "**.youtube.com",
+                "**.googlevideo.com",
+                "youtubei.googleapis.com"
+            ]
         }
     ]
 }

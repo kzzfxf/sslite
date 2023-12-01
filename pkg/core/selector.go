@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kzzfxf/teleport/pkg/logkit"
 	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
@@ -59,7 +60,12 @@ func (tp *Engine) match(hostname string, port uint) (tunnel *Tunnel, forward str
 
 	defer func() {
 		if tunnel != nil {
-			fmt.Printf("%s => %s => (%s)\n", hostname, matched, selector)
+			logkit.Debug("matched",
+				logkit.WithAttr("hostname", hostname),
+				logkit.WithAttr("rule", matched),
+				logkit.WithAttr("forward", forward),
+				logkit.WithAttr("selector", selector),
+			)
 			tp.route.Set(hostname, forward, tunnel, time.Now().Add(60*time.Second))
 		}
 	}()

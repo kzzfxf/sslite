@@ -19,6 +19,7 @@ import (
 	"net"
 
 	"github.com/kzzfxf/teleport/pkg/common"
+	"github.com/kzzfxf/teleport/pkg/logkit"
 	"github.com/kzzfxf/teleport/pkg/service"
 	"github.com/kzzfxf/teleport/pkg/utils"
 	"github.com/riobard/go-shadowsocks2/socks"
@@ -27,6 +28,7 @@ import (
 func Start(ctx context.Context, network, addr string) (err error) {
 	ln, err := net.Listen(network, addr)
 	if err != nil {
+		logkit.Error("Start call Listen failed", logkit.WithAttr("error", err), logkit.WithAttr("network", network), logkit.WithAttr("addr", addr))
 		return
 	}
 
@@ -38,11 +40,13 @@ func Start(ctx context.Context, network, addr string) (err error) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
+			logkit.Error("Start call Accept failed", logkit.WithAttr("error", err))
 			break
 		}
 
 		dstAddr, err := socks.Handshake(conn)
 		if err != nil {
+			logkit.Error("Start call Handshake failed", logkit.WithAttr("error", err))
 			conn.Close()
 			continue
 		}

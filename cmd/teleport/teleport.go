@@ -54,6 +54,7 @@ func init() {
 	//     f.StringVarP(&flags.Test, "test", "t", flags.Test, "a test flag")
 	// }
 	if pf := teleportc.PersistentFlags(); pf != nil {
+		pf.StringVarP(&gflags.LogLevel, "log-level", "", gflags.LogLevel, "log level, optional: debug, info, warn, error")
 		pf.StringVarP(&gflags.BaseConfigFile, "config", "c", gflags.BaseConfigFile, "base config file")
 		pf.StringVarP(&gflags.RulesConfigFile, "config-rules", "r", gflags.RulesConfigFile, "rules config file")
 	}

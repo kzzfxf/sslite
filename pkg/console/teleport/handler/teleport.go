@@ -16,15 +16,20 @@ package handler
 
 import (
 	"context"
+	"os"
+
+	"github.com/kzzfxf/teleport/pkg/logkit"
 )
 
 type GlobalFlags struct {
+	LogLevel        string
 	BaseConfigFile  string
 	RulesConfigFile string
 }
 
 func NewGlobalFlags() (gflags *GlobalFlags) {
 	gflags = &GlobalFlags{}
+	gflags.LogLevel = string(logkit.LevelError)
 	gflags.BaseConfigFile = "./conf/teleport.json"
 	gflags.RulesConfigFile = "./conf/rules.json"
 	return
@@ -45,6 +50,8 @@ func OnTeleportHandler(ctx context.Context, flags *TeleportFlags, args []string)
 }
 
 func OnGlobalBeforeHandler(ctx context.Context, flags *GlobalFlags, args []string) (err error) {
+	logkit.Init(os.Stdout, logkit.Level(flags.LogLevel))
+	logkit.Info("init logkit")
 	return
 }
 

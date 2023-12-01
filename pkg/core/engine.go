@@ -28,6 +28,7 @@ import (
 	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
 	"github.com/kzzfxf/teleport/pkg/core/internal"
 	"github.com/kzzfxf/teleport/pkg/core/rules"
+	"github.com/kzzfxf/teleport/pkg/logkit"
 	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
@@ -78,6 +79,8 @@ func NewEngine(conf *config.Config, rulesConf *config.Rules) (tp *Engine, err er
 		// Setup latency tester
 		tunnel.SetupLatencyTester(conf.Latency.URL, time.Duration(conf.Latency.Timeout)*time.Millisecond)
 		tp.AddTunnel(tunnel)
+
+		logkit.Info("new tunnel", logkit.WithAttr("name", tunnel.Name()), logkit.WithAttr("type", proxy.Type))
 	}
 	// Init rules
 	tp.rules = rules.NewRules(rulesConf)
@@ -153,24 +156,20 @@ func (tp *Engine) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.
 	}
 	tunnel, forward := tp.MatchTunnel(dstAddr)
 	if tunnel == nil {
-		fmt.Printf("Select tunnel for %s failed\n", dstAddr)
+		logkit.Debug("select tunnel failed", logkit.WithAttr("dst_addr", dstAddr))
 		return
-	} else if forward != "" {
-		dstAddr = forward
 	}
-	tp.transport(ctx, NewHttpBridge(w, r, dstAddr), tunnel)
+	tp.transport(ctx, NewHttpBridge(w, r, dstAddr, forward), tunnel)
 }
 
 // ServeSocket
 func (tp *Engine) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
 	tunnel, forward := tp.MatchTunnel(dstAddr)
 	if tunnel == nil {
-		fmt.Printf("Select tunnel for %s failed\n", dstAddr)
+		logkit.Debug("select tunnel failed", logkit.WithAttr("dst_addr", dstAddr))
 		return
-	} else if forward != "" {
-		dstAddr = forward
 	}
-	tp.transport(ctx, NewSocketBridge(client, dstAddr), tunnel)
+	tp.transport(ctx, NewSocketBridge(client, dstAddr, forward), tunnel)
 }
 
 // transport
@@ -181,19 +180,28 @@ func (tp *Engine) transport(ctx context.Context, bridge Bridge, tunnel *Tunnel) 
 	}()
 
 	if tunnel == TunnelReject {
-		fmt.Printf("%s => %s => %s =x=> %s\n", bridge.InBound(), ctx.Value(common.ContextEntry), tunnel.Name(), bridge.OutBound())
-	} else {
-		fmt.Printf("%s => %s => %s ===> %s\n", bridge.InBound(), ctx.Value(common.ContextEntry), tunnel.Name(), bridge.OutBound())
+		logkit.Debug("transport denied",
+			logkit.WithAttr("entry", ctx.Value(common.ContextEntry)),
+			logkit.WithAttr("inbound", bridge.InBound()),
+			logkit.WithAttr("outbound", bridge.OutBound()),
+			logkit.WithAttr("outbound_real", bridge.OutBoundReal()),
+		)
+		return
 	}
+
+	logkit.Debug("transport allowed",
+		logkit.WithAttr("entry", ctx.Value(common.ContextEntry)),
+		logkit.WithAttr("inbound", bridge.InBound()),
+		logkit.WithAttr("outbound", bridge.OutBound()),
+		logkit.WithAttr("outbound_real", bridge.OutBoundReal()),
+	)
 
 	dialFn := func(network, addr string) (net.Conn, error) {
 		return tunnel.Dial(network, addr)
 	}
 	err := bridge.Transport(ctx, dialFn)
 	if err != nil {
-		if tunnel != TunnelReject {
-			fmt.Printf("Transport %s->%s failed, error = %s\n", bridge.InBound(), bridge.OutBound(), err.Error())
-		}
+		logkit.Error("transport failed", logkit.WithAttr("error", err), logkit.WithAttr("inbound", bridge.InBound()), logkit.WithAttr("outbound", bridge.OutBound()), logkit.WithAttr("tunnel", tunnel.Name()))
 		return
 	}
 }

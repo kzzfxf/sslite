@@ -19,6 +19,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/kzzfxf/teleport/pkg/logkit"
 	"github.com/oschwald/geoip2-golang"
 )
 
@@ -37,6 +38,8 @@ func init() {
 	db, err := geoip2.FromBytes(geoipmmdb)
 	if err == nil {
 		geoipdb = db
+	} else {
+		logkit.Error("read geoip database failed", logkit.WithAttr("error", err))
 	}
 }
 

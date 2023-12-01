@@ -22,6 +22,7 @@ import (
 
 	"github.com/gobwas/glob"
 	"github.com/kzzfxf/teleport/pkg/config"
+	"github.com/kzzfxf/teleport/pkg/logkit"
 	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
@@ -81,6 +82,8 @@ func (r *Rules) init() {
 					hostname: rule,
 					selector: selector,
 				}
+			} else {
+				logkit.Warn("rule repeated", logkit.WithAttr("rule", route.Rule))
 			}
 		case "pattern":
 			p, err := glob.Compile(rule, '.')
@@ -94,6 +97,8 @@ func (r *Rules) init() {
 					hostname: rule,
 					selector: selector,
 				})
+			} else {
+				logkit.Error("invalid rule", logkit.WithAttr("error", err), logkit.WithAttr("rule", route.Rule))
 			}
 		case "geoip":
 			if _, ok := r.geoips[rule]; !ok {
@@ -101,6 +106,8 @@ func (r *Rules) init() {
 					isoCode:  rule,
 					selector: selector,
 				}
+			} else {
+				logkit.Warn("rule repeated", logkit.WithAttr("rule", route.Rule))
 			}
 		case "ip-cidr":
 			_, ipnet, err := net.ParseCIDR(rule)
@@ -110,6 +117,8 @@ func (r *Rules) init() {
 					cidr:     rule,
 					selector: selector,
 				})
+			} else {
+				logkit.Error("invalid rule", logkit.WithAttr("error", err), logkit.WithAttr("rule", route.Rule))
 			}
 		case "group":
 			if _, ok := r.groups[rule]; !ok {
@@ -119,6 +128,8 @@ func (r *Rules) init() {
 					patterns:  make([]glob.Glob, 0),
 					selector:  selector,
 				}
+			} else {
+				logkit.Warn("rule repeated", logkit.WithAttr("rule", route.Rule))
 			}
 		case "final":
 			if r.final.empty() {
@@ -140,11 +151,15 @@ func (r *Rules) init() {
 			case "domain", "ipv4", "ipv6":
 				if _, ok := g.hostnames[rule]; !ok {
 					g.hostnames[rule] = struct{}{}
+				} else {
+					logkit.Warn("rule repeated", logkit.WithAttr("group", group.Name), logkit.WithAttr("rule", rule))
 				}
 			case "pattern":
 				p, err := glob.Compile(rule, '.')
 				if err == nil {
 					g.patterns = append(g.patterns, p)
+				} else {
+					logkit.Error("invalid rule", logkit.WithAttr("error", err), logkit.WithAttr("rule", rule))
 				}
 			}
 		}
@@ -175,14 +190,14 @@ func (r *Rules) Match(hostname string) (selector, forward, matched string) {
 		if len(r.geoips) > 0 && geoipdb != nil {
 			if isoCode, known := lookupGeoIPIsoCode(IP); known {
 				if geoip, ok := r.geoips[isoCode]; ok {
-					return geoip.selector.selector, geoip.selector.forward, fmt.Sprintf("group:%s", isoCode)
+					return geoip.selector.selector, geoip.selector.forward, fmt.Sprintf("geoip:%s", isoCode)
 				}
 			}
 		}
 		// ip-cidr
 		for _, cidr := range r.ipcidrs {
 			if cidr.ipnet.Contains(IP) {
-				return cidr.selector.selector, cidr.selector.forward, fmt.Sprintf("group:%s", cidr.cidr)
+				return cidr.selector.selector, cidr.selector.forward, fmt.Sprintf("ip-cidr:%s", cidr.cidr)
 			}
 		}
 	}
@@ -206,11 +221,11 @@ func WhatRule(hostname string) (prefix, rule string, known bool) {
 	if strings.HasPrefix(hostname, "group:") {
 		return "group", hostname[6:], true
 	}
-	if isPattern(hostname) {
-		return "pattern", hostname, true
-	}
 	if utils.IsDomain(hostname) {
 		return "domain", hostname, true
+	}
+	if isPattern(hostname) {
+		return "pattern", hostname, true
 	}
 	if utils.IsIPV4(hostname) {
 		return "ipv4", hostname, true

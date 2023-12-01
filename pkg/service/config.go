@@ -21,7 +21,7 @@ import (
 )
 
 type configuration interface {
-	Load(data []byte) (conf *config.Config, err error)
+	LoadConfig(data []byte) (conf *config.Config, err error)
 	LoadRules(data []byte) (conf *config.Rules, err error)
 }
 
@@ -30,8 +30,8 @@ type configurationImpl struct {
 
 var Config configuration = &configurationImpl{}
 
-// Load
-func (c *configurationImpl) Load(data []byte) (conf *config.Config, err error) {
+// LoadConfig
+func (c *configurationImpl) LoadConfig(data []byte) (conf *config.Config, err error) {
 	var config config.Config
 	err = json.Unmarshal(data, &config)
 	if err == nil {
