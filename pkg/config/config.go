@@ -38,7 +38,8 @@ type Rules struct {
 }
 
 type Route struct {
-	Hostname string `json:"hostname"`
+	Rule     string `json:"rule"`
+	Forward  string `json:"forward"`
 	Selector string `json:"selector"`
 }
 

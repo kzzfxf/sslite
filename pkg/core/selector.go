@@ -15,6 +15,7 @@
 package core
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -30,55 +31,57 @@ const (
 )
 
 // MatchTunnel
-func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel) {
-	domain, ip, port, err := utils.ParseAddr(addr)
+func (tp *Engine) MatchTunnel(addr string) (tunnel *Tunnel, forward string) {
+	hostname, port, err := utils.ParseAddr(addr)
 	if err != nil {
 		return
 	}
-	return tp.match(domain, ip, port)
+	tunnel, forward = tp.match(hostname, port)
+	if forward != "" {
+		if !utils.IsValidAddr(forward) {
+			forward = fmt.Sprintf("%s:%d", forward, port)
+		}
+	}
+	return
 }
 
 // match
-func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
-	hostname := domain
-	if hostname == "" {
-		hostname = ip
-	}
-
-	_, tunnel, ok := tp.route.Get(hostname)
+func (tp *Engine) match(hostname string, port uint) (tunnel *Tunnel, forward string) {
+	tunnel, forward, ok := tp.route.Get(hostname)
 	if ok {
-		return tunnel
+		return tunnel, forward
 	}
 
-	customIP, selector, ok := tp.rules.Match(hostname)
-	if !ok {
-		return nil
+	selector, forward, matched := tp.rules.Match(hostname)
+	if matched == "" {
+		return nil, ""
 	}
 
 	defer func() {
 		if tunnel != nil {
-			tp.route.Put(hostname, customIP, tunnel, time.Now().Add(60*time.Second))
+			fmt.Printf("%s => %s => (%s)\n", hostname, matched, selector)
+			tp.route.Set(hostname, forward, tunnel, time.Now().Add(60*time.Second))
 		}
 	}()
 
-	if selector == BuiltinTunnelGlobalName {
+	if selector == TunnelGlobalName {
 		selector = tp.global
-	} else if selector == BuiltinTunnelDirectName {
-		return tp.GetDirectTunnel()
-	} else if selector == BuiltinTunnelRejectName {
-		return tp.GetRejectTunnel()
+	} else if selector == TunnelDirectName {
+		return tp.GetDirectTunnel(), forward
+	} else if selector == TunnelRejectName {
+		return tp.GetRejectTunnel(), forward
 	}
 
 	var labels []string
 	labels = append(labels, strings.Split(selector, ",")...)
 
 	if len(labels) <= 0 {
-		return
+		return nil, ""
 	}
 
 	tunnels := tp.SelectTunnels(SelectOpAnd, labels...)
 	if len(tunnels) <= 0 {
-		return
+		return nil, ""
 	}
 
 	// Sort
@@ -93,10 +96,10 @@ func (tp *Engine) match(domain, ip string, port uint) (tunnel *Tunnel) {
 	})
 
 	for _, tunnel := range tunnels {
-		return tunnel
+		return tunnel, forward
 	}
 
-	return
+	return nil, ""
 }
 
 // SelectTunnels

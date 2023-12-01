@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -29,12 +28,18 @@ import (
 	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
 	"github.com/kzzfxf/teleport/pkg/core/internal"
 	"github.com/kzzfxf/teleport/pkg/core/rules"
+	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
 const (
-	BuiltinTunnelGlobalName = "GLOBAL"
-	BuiltinTunnelDirectName = "DIRECT"
-	BuiltinTunnelRejectName = "REJECT"
+	TunnelGlobalName = "GLOBAL"
+	TunnelDirectName = "DIRECT"
+	TunnelRejectName = "REJECT"
+)
+
+var (
+	TunnelDirect = NewTunnel(TunnelDirectName, direct.NewDirect(3000*time.Millisecond))
+	TunnelReject = NewTunnel(TunnelRejectName, reject.NewReject())
 )
 
 type Engine struct {
@@ -57,9 +62,9 @@ func NewEngine(conf *config.Config, ruleConf *config.Rules) (tp *Engine, err err
 		route:   NewRoute(),
 	}
 	// Builtin tunnels
-	tp.tunnels[BuiltinTunnelDirectName] = NewTunnel(BuiltinTunnelDirectName, direct.NewDirect(3000*time.Millisecond))
-	tp.tunnels[BuiltinTunnelRejectName] = NewTunnel(BuiltinTunnelRejectName, reject.NewReject())
-	// Init engine
+	tp.tunnels[TunnelDirectName] = TunnelDirect
+	tp.tunnels[TunnelRejectName] = TunnelReject
+	// Init tunnels
 	for _, proxy := range conf.Proxies {
 		dialer, err := NewDialerWithURL(proxy.Type, proxy.URL)
 		if err != nil {
@@ -70,10 +75,8 @@ func NewEngine(conf *config.Config, ruleConf *config.Rules) (tp *Engine, err err
 		for _, label := range proxy.Labels {
 			tunnel.SetLabel(label)
 		}
-		// Ignore direct and reject
-		if proxy.Type != "direct" && proxy.Type != "reject" {
-			tunnel.SetupLatencyTester(conf.Latency.URL, time.Duration(conf.Latency.Timeout)*time.Millisecond)
-		}
+		// Setup latency tester
+		tunnel.SetupLatencyTester(conf.Latency.URL, time.Duration(conf.Latency.Timeout)*time.Millisecond)
 		tp.AddTunnel(tunnel)
 	}
 	// Init rules
@@ -82,25 +85,15 @@ func NewEngine(conf *config.Config, ruleConf *config.Rules) (tp *Engine, err err
 	return
 }
 
-// Route
-func (tp *Engine) Route() (r *Route) {
-	return tp.route
-}
-
-// Rules
-func (tp *Engine) Rules() (r *rules.Rules) {
-	return tp.rules
-}
-
 // GetDirectTunnel
 func (tp *Engine) GetDirectTunnel() (tunnel *Tunnel) {
-	tunnel, _ = tp.GetTunnel(BuiltinTunnelDirectName)
+	tunnel, _ = tp.GetTunnel(TunnelDirectName)
 	return
 }
 
 // GetRejectTunnel
 func (tp *Engine) GetRejectTunnel() (tunnel *Tunnel) {
-	tunnel, _ = tp.GetTunnel(BuiltinTunnelRejectName)
+	tunnel, _ = tp.GetTunnel(TunnelRejectName)
 	return
 }
 
@@ -155,23 +148,27 @@ func (tp *Engine) RemoveBridge(bridgeID string) {
 // ServeHTTP
 func (tp *Engine) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	dstAddr := r.Host
-	if !strings.Contains(dstAddr, ":") {
+	if !utils.IsValidAddr(dstAddr) {
 		dstAddr = fmt.Sprintf("%s:%d", dstAddr, 80)
 	}
-	tunnel := tp.MatchTunnel(dstAddr)
+	tunnel, forward := tp.MatchTunnel(dstAddr)
 	if tunnel == nil {
 		fmt.Printf("Select tunnel for %s failed\n", dstAddr)
 		return
+	} else if forward != "" {
+		dstAddr = forward
 	}
 	tp.transport(ctx, NewHttpBridge(w, r, dstAddr), tunnel)
 }
 
 // ServeSocket
 func (tp *Engine) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
-	tunnel := tp.MatchTunnel(dstAddr)
+	tunnel, forward := tp.MatchTunnel(dstAddr)
 	if tunnel == nil {
 		fmt.Printf("Select tunnel for %s failed\n", dstAddr)
 		return
+	} else if forward != "" {
+		dstAddr = forward
 	}
 	tp.transport(ctx, NewSocketBridge(client, dstAddr), tunnel)
 }
@@ -183,14 +180,20 @@ func (tp *Engine) transport(ctx context.Context, bridge Bridge, tunnel *Tunnel) 
 		tp.RemoveBridge(bridgeID)
 	}()
 
-	fmt.Printf("%s -> %s -> %s -> %s\n", bridge.InBound(), ctx.Value(common.ContextEntry), tunnel.Name(), bridge.OutBound())
+	if tunnel == TunnelReject {
+		fmt.Printf("%s => %s => %s =x=> %s\n", bridge.InBound(), ctx.Value(common.ContextEntry), tunnel.Name(), bridge.OutBound())
+	} else {
+		fmt.Printf("%s => %s => %s ===> %s\n", bridge.InBound(), ctx.Value(common.ContextEntry), tunnel.Name(), bridge.OutBound())
+	}
 
 	dialFn := func(network, addr string) (net.Conn, error) {
 		return tunnel.Dial(network, addr)
 	}
 	err := bridge.Transport(ctx, dialFn)
 	if err != nil {
-		fmt.Printf("Transport %s->%s failed, error = %s\n", bridge.InBound(), bridge.OutBound(), err.Error())
+		if tunnel != TunnelReject {
+			fmt.Printf("Transport %s->%s failed, error = %s\n", bridge.InBound(), bridge.OutBound(), err.Error())
+		}
 		return
 	}
 }

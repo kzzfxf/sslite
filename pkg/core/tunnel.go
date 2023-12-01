@@ -26,6 +26,10 @@ import (
 	"time"
 )
 
+var (
+	ErrNoLatencyTesterFound = errors.New("no latency tester found")
+)
+
 type Tunnel struct {
 	name       string
 	dialer     Dialer
@@ -33,8 +37,8 @@ type Tunnel struct {
 	downNBytes uint64
 	upNBytes   uint64
 	latency    struct {
-		url     string
 		addr    string
+		url     string
 		timeout time.Duration
 		value   time.Duration
 	}
@@ -141,31 +145,31 @@ func (tun *Tunnel) RemoveLabel(label string) {
 // SetupLatencyTester
 func (tun *Tunnel) SetupLatencyTester(URL string, timeout time.Duration) {
 	if URL != "" {
-		for i := 0; i < 1; i++ {
-			u, err := url.Parse(URL)
-			if err != nil {
-				break
-			}
-			addr := ""
-			if u.Hostname() == "" {
-				break
-			} else if port := u.Port(); port != "" {
-				addr = u.Host
-			} else {
-				if u.Scheme == "http" {
-					addr = fmt.Sprintf("%s:%d", u.Hostname(), 80)
-				} else if u.Scheme == "https" {
-					addr = fmt.Sprintf("%s:%d", u.Hostname(), 443)
-				} else {
-					break
-				}
-			}
-			tun.latency.addr = addr
-			tun.latency.url = URL
+		u, err := url.Parse(URL)
+		if err != nil {
+			return
 		}
-	}
-	if timeout <= 0 {
-		tun.latency.timeout = 3000 * time.Millisecond
+		addr := ""
+		if u.Hostname() == "" {
+			return
+		} else if port := u.Port(); port != "" {
+			addr = u.Host
+		} else {
+			if u.Scheme == "http" {
+				addr = fmt.Sprintf("%s:%d", u.Hostname(), 80)
+			} else if u.Scheme == "https" {
+				addr = fmt.Sprintf("%s:%d", u.Hostname(), 443)
+			} else {
+				return
+			}
+		}
+
+		tun.latency.addr = addr
+		tun.latency.url = URL
+
+		if timeout <= 0 {
+			tun.latency.timeout = 3000 * time.Millisecond
+		}
 	}
 }
 
@@ -173,7 +177,7 @@ func (tun *Tunnel) SetupLatencyTester(URL string, timeout time.Duration) {
 func (tun *Tunnel) TestLatency() (latency time.Duration, err error) {
 	if tun.latency.addr == "" ||
 		tun.latency.url == "" {
-		return 0, errors.New("no latency tester found")
+		return 0, ErrNoLatencyTesterFound
 	}
 	t := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {

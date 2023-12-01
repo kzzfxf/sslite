@@ -16,15 +16,17 @@ package rules
 
 import (
 	_ "embed"
+	"fmt"
 	"net"
 	"strings"
 
 	"github.com/gobwas/glob"
 	"github.com/kzzfxf/teleport/pkg/config"
+	"github.com/kzzfxf/teleport/pkg/utils"
 )
 
 type selector struct {
-	ip       string
+	forward  string
 	selector string
 }
 
@@ -63,14 +65,18 @@ func NewRules(conf *config.Rules) (r *Rules) {
 // init
 func (r *Rules) init() {
 	for _, route := range r.conf.Routes {
-		prefix, rule, known := WhatRule(route.Hostname)
-		if !known {
+		prefix, rule, known := WhatRule(route.Rule)
+		if !known || rule == "" {
 			continue
 		}
-		selector := selector{ip: "", selector: route.Selector}
+		selector := selector{selector: route.Selector}
 		switch prefix {
 		case "domain", "ipv4", "ipv6":
 			if _, ok := r.hostnames[rule]; !ok {
+				if utils.IsValidAddr(route.Forward) ||
+					(utils.IsDomain(route.Forward) || utils.IsIPV4(route.Forward) || utils.IsIPV6(route.Forward)) {
+					selector.forward = route.Forward
+				}
 				r.hostnames[rule] = hostname{
 					hostname: rule,
 					selector: selector,
@@ -79,8 +85,13 @@ func (r *Rules) init() {
 		case "pattern":
 			p, err := glob.Compile(rule, '.')
 			if err == nil {
+				if utils.IsValidAddr(route.Forward) ||
+					(utils.IsDomain(route.Forward) || utils.IsIPV4(route.Forward) || utils.IsIPV6(route.Forward)) {
+					selector.forward = route.Forward
+				}
 				r.patterns = append(r.patterns, pattern{
 					pattern:  p,
+					hostname: rule,
 					selector: selector,
 				})
 			}
@@ -122,7 +133,7 @@ func (r *Rules) init() {
 		}
 		for _, hostname := range group.Hostnames {
 			prefix, rule, known := WhatRule(hostname)
-			if !known {
+			if !known || rule == "" {
 				continue
 			}
 			switch prefix {
@@ -141,48 +152,42 @@ func (r *Rules) init() {
 }
 
 // Match
-func (r *Rules) Match(hostname string) (ip, selector string, matched bool) {
+func (r *Rules) Match(hostname string) (selector, forward, matched string) {
 	if route, ok := r.hostnames[hostname]; ok {
-		return route.selector.ip, route.selector.selector, true
-	}
-	for _, g := range r.groups {
-		if g.match(hostname) {
-			return g.selector.ip, g.selector.selector, true
-		}
+		return route.selector.selector, route.selector.forward, hostname
 	}
 	for _, p := range r.patterns {
 		if p.pattern.Match(hostname) {
-			return p.selector.ip, p.selector.selector, true
+			return p.selector.selector, p.selector.forward, p.hostname
+		}
+	}
+	for _, g := range r.groups {
+		if g.match(hostname) {
+			return g.selector.selector, g.selector.forward, fmt.Sprintf("group:%s", g.name)
 		}
 	}
 	var IP net.IP
 	if IP = net.ParseIP(hostname); IP == nil {
-		IPs, err := net.LookupIP(hostname)
-		if err == nil {
-			for _, v := range IPs {
-				IP = v
-				break
-			}
-		}
+		IP = utils.LookupIP(hostname)
 	}
 	if IP != nil {
 		// geoip
 		if len(r.geoips) > 0 && geoipdb != nil {
 			if isoCode, known := lookupGeoIPIsoCode(IP); known {
 				if geoip, ok := r.geoips[isoCode]; ok {
-					return geoip.selector.ip, geoip.selector.selector, true
+					return geoip.selector.selector, geoip.selector.forward, fmt.Sprintf("group:%s", isoCode)
 				}
 			}
 		}
 		// ip-cidr
 		for _, cidr := range r.ipcidrs {
 			if cidr.ipnet.Contains(IP) {
-				return cidr.selector.ip, cidr.selector.selector, true
+				return cidr.selector.selector, cidr.selector.forward, fmt.Sprintf("group:%s", cidr.cidr)
 			}
 		}
 	}
 	if !r.final.empty() {
-		return r.final.ip, r.final.selector, true
+		return r.final.selector, r.final.forward, "**"
 	}
 	return
 }
@@ -204,13 +209,13 @@ func WhatRule(hostname string) (prefix, rule string, known bool) {
 	if isPattern(hostname) {
 		return "pattern", hostname, true
 	}
-	if isDomain(hostname) {
+	if utils.IsDomain(hostname) {
 		return "domain", hostname, true
 	}
-	if isIPV4(hostname) {
+	if utils.IsIPV4(hostname) {
 		return "ipv4", hostname, true
 	}
-	if isIPV6(hostname) {
+	if utils.IsIPV6(hostname) {
 		return "ipv6", hostname, true
 	}
 	return "", "", false

@@ -15,8 +15,9 @@
 package utils
 
 import (
-	"fmt"
+	"errors"
 	"net"
+	"regexp"
 	"strconv"
 )
 
@@ -28,21 +29,59 @@ func SetKeepAlive(conn net.Conn) {
 }
 
 // ParseAddr
-func ParseAddr(addr string) (domain, ip string, port uint, err error) {
-	h, p, err := net.SplitHostPort(addr)
+func ParseAddr(addr string) (hostname string, port uint, err error) {
+	hostname, p, err := net.SplitHostPort(addr)
 	if err != nil {
 		return
 	}
-	if IP := net.ParseIP(h); IP != nil {
-		ip = h
-	} else if len(h) <= 255 {
-		domain = h
-	} else {
-		return "", "", 0, fmt.Errorf("invalid host: %s", h)
+	if hostname == "" {
+		return "", 0, errors.New("invalid hostname")
 	}
 	nport, err := strconv.ParseUint(p, 10, 16)
 	if err != nil {
 		return
 	}
-	return domain, ip, uint(nport), nil
+	return hostname, uint(nport), nil
+}
+
+var (
+	domainRegExp = regexp.MustCompile(`^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}$`)
+)
+
+// IsIPV4
+func IsIPV4(s string) bool {
+	if ip := net.ParseIP(s); ip != nil {
+		return ip.To4() != nil
+	}
+	return false
+}
+
+// IsIPV6
+func IsIPV6(s string) bool {
+	if ip := net.ParseIP(s); ip != nil {
+		return ip.To4() == nil
+	}
+	return false
+}
+
+// IsDomain
+func IsDomain(s string) bool {
+	return domainRegExp.MatchString(s)
+}
+
+// IsValidAddr
+func IsValidAddr(addr string) bool {
+	_, _, err := ParseAddr(addr)
+	return err == nil
+}
+
+// LookupIP
+func LookupIP(domain string) net.IP {
+	IPs, err := net.LookupIP(domain)
+	if err == nil {
+		for _, v := range IPs {
+			return v
+		}
+	}
+	return nil
 }

@@ -15,8 +15,6 @@
 package rules
 
 import (
-	"net"
-	"regexp"
 	"strings"
 
 	"github.com/gobwas/glob"
@@ -29,32 +27,8 @@ type hostname struct {
 
 type pattern struct {
 	pattern  glob.Glob
+	hostname string
 	selector selector
-}
-
-var (
-	domainRegExp = regexp.MustCompile(`^([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}$`)
-)
-
-// isIPV4
-func isIPV4(s string) bool {
-	if ip := net.ParseIP(s); ip != nil {
-		return ip.To4() != nil
-	}
-	return false
-}
-
-// isIPV6
-func isIPV6(s string) bool {
-	if ip := net.ParseIP(s); ip != nil {
-		return ip.To4() == nil
-	}
-	return false
-}
-
-// isDomain
-func isDomain(s string) bool {
-	return domainRegExp.MatchString(s)
 }
 
 // isPattern
