@@ -61,10 +61,10 @@ func (tp *Engine) match(hostname string, port uint) (tunnel *Tunnel, forward str
 	defer func() {
 		if tunnel != nil {
 			logkit.Debug("matched",
-				logkit.WithAttr("hostname", hostname),
-				logkit.WithAttr("rule", matched),
-				logkit.WithAttr("forward", forward),
-				logkit.WithAttr("selector", selector),
+				logkit.Any("hostname", hostname),
+				logkit.Any("rule", matched),
+				logkit.Any("forward", forward),
+				logkit.Any("selector", selector),
 			)
 			tp.route.Set(hostname, forward, tunnel, time.Now().Add(60*time.Second))
 		}

@@ -54,7 +54,7 @@ func handler(ctx context.Context, addr string) httpPkg.HandlerFunc {
 			}
 			conn, _, err := hijacker.Hijack()
 			if err != nil {
-				logkit.Error("handler call Hijack failed", logkit.WithAttr("error", err))
+				logkit.Error("handler call Hijack failed", logkit.Any("error", err))
 				return
 			}
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))

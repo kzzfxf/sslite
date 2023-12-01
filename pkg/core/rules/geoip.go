@@ -39,7 +39,7 @@ func init() {
 	if err == nil {
 		geoipdb = db
 	} else {
-		logkit.Error("read geoip database failed", logkit.WithAttr("error", err))
+		logkit.Error("read geoip database failed", logkit.Any("error", err))
 	}
 }
 

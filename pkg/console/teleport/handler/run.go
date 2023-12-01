@@ -45,31 +45,31 @@ func NewRunFlags(gflags *GlobalFlags) (flags *RunFlags) {
 func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err error) {
 	data0, err := os.ReadFile(flags.BaseConfigFile)
 	if err != nil {
-		logkit.Error("call os.ReadFile failed", logkit.WithAttr("error", err), logkit.WithAttr("config", flags.BaseConfigFile))
+		logkit.Error("call os.ReadFile failed", logkit.Any("error", err), logkit.Any("config", flags.BaseConfigFile))
 		return
 	}
 
 	conf, err := service.Config.LoadConfig(data0)
 	if err != nil {
-		logkit.Error("call service.Config.LoadConfig failed", logkit.WithAttr("error", err))
+		logkit.Error("call service.Config.LoadConfig failed", logkit.Any("error", err))
 		return
 	}
 
 	data1, err := os.ReadFile(flags.RulesConfigFile)
 	if err != nil {
-		logkit.Error("call os.ReadFile failed", logkit.WithAttr("error", err), logkit.WithAttr("config", flags.RulesConfigFile))
+		logkit.Error("call os.ReadFile failed", logkit.Any("error", err), logkit.Any("config", flags.RulesConfigFile))
 		return
 	}
 
 	rulesConf, err := service.Config.LoadRules(data1)
 	if err != nil {
-		logkit.Error("call service.Config.LoadRules failed", logkit.WithAttr("error", err))
+		logkit.Error("call service.Config.LoadRules failed", logkit.Any("error", err))
 		return
 	}
 
 	err = service.Teleport.Init(conf, rulesConf)
 	if err != nil {
-		logkit.Error("call service.Teleport.Init failed", logkit.WithAttr("error", err))
+		logkit.Error("call service.Teleport.Init failed", logkit.Any("error", err))
 		return
 	}
 
@@ -81,7 +81,7 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 			defer wg.Done()
 			err = http.Start(ctx, fmt.Sprintf(":%d", flags.HttpPort))
 			if err != nil {
-				logkit.Error("call http.Start failed", logkit.WithAttr("error", err), logkit.WithAttr("port", flags.HttpPort))
+				logkit.Error("call http.Start failed", logkit.Any("error", err), logkit.Any("port", flags.HttpPort))
 			}
 		}()
 	}
@@ -91,7 +91,7 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 			defer wg.Done()
 			err = socket.Start(ctx, "tcp", fmt.Sprintf(":%d", flags.SocketPort))
 			if err != nil {
-				logkit.Error("call socket.Start failed", logkit.WithAttr("error", err), logkit.WithAttr("port", flags.SocketPort))
+				logkit.Error("call socket.Start failed", logkit.Any("error", err), logkit.Any("port", flags.SocketPort))
 			}
 		}()
 	}
@@ -101,7 +101,7 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 			defer wg.Done()
 			err = ui.ShowMainUI()
 			if err != nil {
-				logkit.Error("call ui.ShowMainUI failed", logkit.WithAttr("error", err))
+				logkit.Error("call ui.ShowMainUI failed", logkit.Any("error", err))
 			}
 		}()
 	}

@@ -83,7 +83,7 @@ func (r *Rules) init() {
 					selector: selector,
 				}
 			} else {
-				logkit.Warn("rule repeated", logkit.WithAttr("rule", route.Rule))
+				logkit.Warn("rule repeated", logkit.Any("rule", route.Rule))
 			}
 		case "pattern":
 			p, err := glob.Compile(rule, '.')
@@ -98,7 +98,7 @@ func (r *Rules) init() {
 					selector: selector,
 				})
 			} else {
-				logkit.Error("invalid rule", logkit.WithAttr("error", err), logkit.WithAttr("rule", route.Rule))
+				logkit.Error("invalid rule", logkit.Any("error", err), logkit.Any("rule", route.Rule))
 			}
 		case "geoip":
 			if _, ok := r.geoips[rule]; !ok {
@@ -107,7 +107,7 @@ func (r *Rules) init() {
 					selector: selector,
 				}
 			} else {
-				logkit.Warn("rule repeated", logkit.WithAttr("rule", route.Rule))
+				logkit.Warn("rule repeated", logkit.Any("rule", route.Rule))
 			}
 		case "ip-cidr":
 			_, ipnet, err := net.ParseCIDR(rule)
@@ -118,7 +118,7 @@ func (r *Rules) init() {
 					selector: selector,
 				})
 			} else {
-				logkit.Error("invalid rule", logkit.WithAttr("error", err), logkit.WithAttr("rule", route.Rule))
+				logkit.Error("invalid rule", logkit.Any("error", err), logkit.Any("rule", route.Rule))
 			}
 		case "group":
 			if _, ok := r.groups[rule]; !ok {
@@ -129,7 +129,7 @@ func (r *Rules) init() {
 					selector:  selector,
 				}
 			} else {
-				logkit.Warn("rule repeated", logkit.WithAttr("rule", route.Rule))
+				logkit.Warn("rule repeated", logkit.Any("rule", route.Rule))
 			}
 		case "final":
 			if r.final.empty() {
@@ -152,14 +152,14 @@ func (r *Rules) init() {
 				if _, ok := g.hostnames[rule]; !ok {
 					g.hostnames[rule] = struct{}{}
 				} else {
-					logkit.Warn("rule repeated", logkit.WithAttr("group", group.Name), logkit.WithAttr("rule", rule))
+					logkit.Warn("rule repeated", logkit.Any("group", group.Name), logkit.Any("rule", rule))
 				}
 			case "pattern":
 				p, err := glob.Compile(rule, '.')
 				if err == nil {
 					g.patterns = append(g.patterns, p)
 				} else {
-					logkit.Error("invalid rule", logkit.WithAttr("error", err), logkit.WithAttr("rule", rule))
+					logkit.Error("invalid rule", logkit.Any("error", err), logkit.Any("rule", rule))
 				}
 			}
 		}

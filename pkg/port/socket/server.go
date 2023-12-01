@@ -28,7 +28,7 @@ import (
 func Start(ctx context.Context, network, addr string) (err error) {
 	ln, err := net.Listen(network, addr)
 	if err != nil {
-		logkit.Error("Start call Listen failed", logkit.WithAttr("error", err), logkit.WithAttr("network", network), logkit.WithAttr("addr", addr))
+		logkit.Error("Start call Listen failed", logkit.Any("error", err), logkit.Any("network", network), logkit.Any("addr", addr))
 		return
 	}
 
@@ -40,13 +40,13 @@ func Start(ctx context.Context, network, addr string) (err error) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			logkit.Error("Start call Accept failed", logkit.WithAttr("error", err))
+			logkit.Error("Start call Accept failed", logkit.Any("error", err))
 			break
 		}
 
 		dstAddr, err := socks.Handshake(conn)
 		if err != nil {
-			logkit.Error("Start call Handshake failed", logkit.WithAttr("error", err))
+			logkit.Error("Start call Handshake failed", logkit.Any("error", err))
 			conn.Close()
 			continue
 		}

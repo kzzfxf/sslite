@@ -50,8 +50,8 @@ func Init(w io.Writer, level Level) {
 
 type Attr [2]interface{}
 
-// WithAttr
-func WithAttr(field string, value interface{}) Attr {
+// Any
+func Any(field string, value interface{}) Attr {
 	return Attr{field, value}
 }
 
