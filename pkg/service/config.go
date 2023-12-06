@@ -17,7 +17,7 @@ package service
 import (
 	"encoding/json"
 
-	"github.com/kzzfxf/teleport/pkg/config"
+	"github.com/kzzfxf/sslite/pkg/config"
 )
 
 type configuration interface {

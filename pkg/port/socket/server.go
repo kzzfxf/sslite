@@ -18,10 +18,10 @@ import (
 	"context"
 	"net"
 
-	"github.com/kzzfxf/teleport/pkg/common"
-	"github.com/kzzfxf/teleport/pkg/logkit"
-	"github.com/kzzfxf/teleport/pkg/service"
-	"github.com/kzzfxf/teleport/pkg/utils"
+	"github.com/kzzfxf/sslite/pkg/common"
+	"github.com/kzzfxf/sslite/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/service"
+	"github.com/kzzfxf/sslite/pkg/utils"
 	"github.com/riobard/go-shadowsocks2/socks"
 )
 
@@ -68,7 +68,7 @@ func Start(ctx context.Context, network, addr string) (err error) {
 
 		go func() {
 			defer cancel()
-			service.Teleport.ServeSocket(connCtx, conn, dstAddr.String())
+			service.SSLite.ServeSocket(connCtx, conn, dstAddr.String())
 		}()
 	}
 	return

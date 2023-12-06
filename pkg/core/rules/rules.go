@@ -21,9 +21,9 @@ import (
 	"strings"
 
 	"github.com/gobwas/glob"
-	"github.com/kzzfxf/teleport/pkg/config"
-	"github.com/kzzfxf/teleport/pkg/logkit"
-	"github.com/kzzfxf/teleport/pkg/utils"
+	"github.com/kzzfxf/sslite/pkg/config"
+	"github.com/kzzfxf/sslite/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/utils"
 )
 
 type selector struct {

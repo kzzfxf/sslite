@@ -18,7 +18,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/kzzfxf/teleport/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/logkit"
 )
 
 type GlobalFlags struct {
@@ -30,22 +30,22 @@ type GlobalFlags struct {
 func NewGlobalFlags() (gflags *GlobalFlags) {
 	gflags = &GlobalFlags{}
 	gflags.LogLevel = string(logkit.LevelError)
-	gflags.BaseConfigFile = "./conf/teleport.json"
+	gflags.BaseConfigFile = "./conf/sslite.json"
 	gflags.RulesConfigFile = "./conf/rules.json"
 	return
 }
 
-type TeleportFlags struct {
+type SSLiteFlags struct {
 	*GlobalFlags
 	// Test string
 }
 
-func NewTeleportFlags(gflags *GlobalFlags) (flags *TeleportFlags) {
-	flags = &TeleportFlags{GlobalFlags: gflags}
+func NewSSLiteFlags(gflags *GlobalFlags) (flags *SSLiteFlags) {
+	flags = &SSLiteFlags{GlobalFlags: gflags}
 	return
 }
 
-func OnTeleportHandler(ctx context.Context, flags *TeleportFlags, args []string) (err error) {
+func OnSSLiteHandler(ctx context.Context, flags *SSLiteFlags, args []string) (err error) {
 	return
 }
 

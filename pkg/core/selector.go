@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kzzfxf/teleport/pkg/logkit"
-	"github.com/kzzfxf/teleport/pkg/utils"
+	"github.com/kzzfxf/sslite/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/utils"
 )
 
 type SelectOperation int

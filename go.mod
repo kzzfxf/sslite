@@ -1,4 +1,4 @@
-module github.com/kzzfxf/teleport
+module github.com/kzzfxf/sslite
 
 go 1.18
 

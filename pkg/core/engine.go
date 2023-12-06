@@ -22,14 +22,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kzzfxf/teleport/pkg/common"
-	"github.com/kzzfxf/teleport/pkg/config"
-	"github.com/kzzfxf/teleport/pkg/core/dialer/direct"
-	"github.com/kzzfxf/teleport/pkg/core/dialer/reject"
-	"github.com/kzzfxf/teleport/pkg/core/internal"
-	"github.com/kzzfxf/teleport/pkg/core/rules"
-	"github.com/kzzfxf/teleport/pkg/logkit"
-	"github.com/kzzfxf/teleport/pkg/utils"
+	"github.com/kzzfxf/sslite/pkg/common"
+	"github.com/kzzfxf/sslite/pkg/config"
+	"github.com/kzzfxf/sslite/pkg/core/dialer/direct"
+	"github.com/kzzfxf/sslite/pkg/core/dialer/reject"
+	"github.com/kzzfxf/sslite/pkg/core/internal"
+	"github.com/kzzfxf/sslite/pkg/core/rules"
+	"github.com/kzzfxf/sslite/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/utils"
 )
 
 const (

@@ -18,9 +18,9 @@ import (
 	"context"
 	httpPkg "net/http"
 
-	"github.com/kzzfxf/teleport/pkg/common"
-	"github.com/kzzfxf/teleport/pkg/logkit"
-	"github.com/kzzfxf/teleport/pkg/service"
+	"github.com/kzzfxf/sslite/pkg/common"
+	"github.com/kzzfxf/sslite/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/service"
 )
 
 // Start
@@ -46,7 +46,7 @@ func handler(ctx context.Context, addr string) httpPkg.HandlerFunc {
 		defer cancel()
 
 		if r.Method != httpPkg.MethodConnect {
-			service.Teleport.ServeHTTP(reqCtx, w, r)
+			service.SSLite.ServeHTTP(reqCtx, w, r)
 		} else {
 			hijacker, ok := w.(httpPkg.Hijacker)
 			if !ok {
@@ -58,7 +58,7 @@ func handler(ctx context.Context, addr string) httpPkg.HandlerFunc {
 				return
 			}
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-			service.Teleport.ServeHTTPS(reqCtx, conn, r.Host)
+			service.SSLite.ServeHTTPS(reqCtx, conn, r.Host)
 		}
 	}
 }

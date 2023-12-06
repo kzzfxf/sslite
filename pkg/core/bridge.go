@@ -23,7 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/kzzfxf/teleport/pkg/core/internal"
+	"github.com/kzzfxf/sslite/pkg/core/internal"
 )
 
 const (

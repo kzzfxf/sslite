@@ -19,7 +19,7 @@ import (
 	"net"
 	"strings"
 
-	"github.com/kzzfxf/teleport/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/logkit"
 	"github.com/oschwald/geoip2-golang"
 )
 

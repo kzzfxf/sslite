@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kzzfxf/teleport/pkg/utils"
+	"github.com/kzzfxf/sslite/pkg/utils"
 	"github.com/riobard/go-shadowsocks2/core"
 	"github.com/riobard/go-shadowsocks2/socks"
 )

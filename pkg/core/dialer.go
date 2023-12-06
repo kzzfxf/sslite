@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/kzzfxf/teleport/pkg/core/dialer/shadowsocks"
+	"github.com/kzzfxf/sslite/pkg/core/dialer/shadowsocks"
 )
 
 type Dialer interface {

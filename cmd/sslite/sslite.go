@@ -15,7 +15,7 @@
 package main
 
 import (
-	"github.com/kzzfxf/teleport/pkg/console/teleport/handler"
+	"github.com/kzzfxf/sslite/pkg/console/sslite/handler"
 	"github.com/spf13/cobra"
 )
 
@@ -24,39 +24,39 @@ var (
 )
 
 var (
-	teleportc = &cobra.Command{}
-	gflags    = handler.NewGlobalFlags()
+	sslitec = &cobra.Command{}
+	gflags  = handler.NewGlobalFlags()
 )
 
 func init() {
 	// var (
-	//    flags = handler.NewTeleportFlags(gflags)
+	//    flags = handler.NewSSLiteFlags(gflags)
 	// )
-	teleportc.Use = "teleport"
-	teleportc.Short = "Teleport is a proxy client"
-	teleportc.Long = `Teleport is utilized to connect to remote proxy services, 
+	sslitec.Use = "sslite"
+	sslitec.Short = "SSLite is a proxy client"
+	sslitec.Long = `SSLite is utilized to connect to remote proxy services, 
 offering network proxy capabilities. It provides proxy routing based on rules such as domain names, 
 wildcard domains, grouped domains, GeoIP, IP-CIDR, and other criteria. Additionally, 
 it supports various commonly used proxy protocols.`
-	teleportc.Version = Version
-	teleportc.SilenceUsage = true
-	teleportc.CompletionOptions.HiddenDefaultCmd = true
+	sslitec.Version = Version
+	sslitec.SilenceUsage = true
+	sslitec.CompletionOptions.HiddenDefaultCmd = true
 	// Events
-	teleportc.RunE = func(cmd *cobra.Command, args []string) error {
+	sslitec.RunE = func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
-		// return handler.OnTeleportHandler(cmd.Context(), flags, args)
+		// return handler.OnSSLiteHandler(cmd.Context(), flags, args)
 	}
-	teleportc.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+	sslitec.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
 		return handler.OnGlobalBeforeHandler(cmd.Context(), gflags, args)
 	}
-	teleportc.PersistentPostRunE = func(cmd *cobra.Command, args []string) error {
+	sslitec.PersistentPostRunE = func(cmd *cobra.Command, args []string) error {
 		return handler.OnGlobalAfterHandler(cmd.Context(), gflags, args)
 	}
 	// Flags
-	// if f := teleportc.Flags(); f != nil {
+	// if f := sslitec.Flags(); f != nil {
 	//     f.StringVarP(&flags.Test, "test", "t", flags.Test, "a test flag")
 	// }
-	if pf := teleportc.PersistentFlags(); pf != nil {
+	if pf := sslitec.PersistentFlags(); pf != nil {
 		pf.StringVarP(&gflags.LogLevel, "log-level", "", gflags.LogLevel, "log level, optional: debug, info, warn, error")
 		pf.StringVarP(&gflags.BaseConfigFile, "config", "c", gflags.BaseConfigFile, "base config file")
 		pf.StringVarP(&gflags.RulesConfigFile, "config-rules", "r", gflags.RulesConfigFile, "rules config file")
@@ -72,10 +72,10 @@ func main() {
 	cmds = append(cmds, runc)
 	// sub command placeholder
 
-	teleportc.AddCommand(cmds...)
+	sslitec.AddCommand(cmds...)
 	defer func() {
-		teleportc.RemoveCommand(cmds...)
+		sslitec.RemoveCommand(cmds...)
 	}()
 
-	teleportc.Execute()
+	sslitec.Execute()
 }

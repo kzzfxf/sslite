@@ -20,11 +20,11 @@ import (
 	"os"
 	"sync"
 
-	"github.com/kzzfxf/teleport/pkg/logkit"
-	"github.com/kzzfxf/teleport/pkg/port/http"
-	"github.com/kzzfxf/teleport/pkg/port/socket"
-	"github.com/kzzfxf/teleport/pkg/service"
-	"github.com/kzzfxf/teleport/pkg/ui"
+	"github.com/kzzfxf/sslite/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/port/http"
+	"github.com/kzzfxf/sslite/pkg/port/socket"
+	"github.com/kzzfxf/sslite/pkg/service"
+	"github.com/kzzfxf/sslite/pkg/ui"
 )
 
 type RunFlags struct {
@@ -67,9 +67,9 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 		return
 	}
 
-	err = service.Teleport.Init(conf, rulesConf)
+	err = service.SSLite.Init(conf, rulesConf)
 	if err != nil {
-		logkit.Error("call service.Teleport.Init failed", logkit.Any("error", err))
+		logkit.Error("call service.SSLite.Init failed", logkit.Any("error", err))
 		return
 	}
 

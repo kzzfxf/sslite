@@ -15,7 +15,7 @@
 package main
 
 import (
-	"github.com/kzzfxf/teleport/pkg/console/teleport/handler"
+	"github.com/kzzfxf/sslite/pkg/console/sslite/handler"
 	"github.com/spf13/cobra"
 )
 

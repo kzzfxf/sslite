@@ -19,24 +19,24 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/kzzfxf/teleport/pkg/config"
-	"github.com/kzzfxf/teleport/pkg/core"
+	"github.com/kzzfxf/sslite/pkg/config"
+	"github.com/kzzfxf/sslite/pkg/core"
 )
 
-type teleport interface {
+type sslite interface {
 	Init(conf *config.Config, rulesConf *config.Rules) (err error)
 	ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string)
 	ServeSocket(ctx context.Context, client net.Conn, dstAddr string)
 }
 
-type teleportImpl struct {
+type ssliteImpl struct {
 	engine *core.Engine
 }
 
-var Teleport teleport = &teleportImpl{}
+var SSLite sslite = &ssliteImpl{}
 
-func (tp *teleportImpl) Init(conf *config.Config, rulesConf *config.Rules) (err error) {
+func (tp *ssliteImpl) Init(conf *config.Config, rulesConf *config.Rules) (err error) {
 	engine, err := core.NewEngine(conf, rulesConf)
 	if err != nil {
 		return
@@ -45,14 +45,14 @@ func (tp *teleportImpl) Init(conf *config.Config, rulesConf *config.Rules) (err 
 	return
 }
 
-func (tp *teleportImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (tp *ssliteImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	tp.engine.ServeHTTP(ctx, w, r)
 }
 
-func (tp *teleportImpl) ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string) {
+func (tp *ssliteImpl) ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string) {
 	tp.engine.ServeSocket(ctx, client, dstAddr)
 }
 
-func (tp *teleportImpl) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
+func (tp *ssliteImpl) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
 	tp.engine.ServeSocket(ctx, client, dstAddr)
 }
