@@ -21,24 +21,24 @@ import (
 	"sync"
 
 	"github.com/kzzfxf/sslite/pkg/logkit"
+	"github.com/kzzfxf/sslite/pkg/port/gui"
 	"github.com/kzzfxf/sslite/pkg/port/http"
 	"github.com/kzzfxf/sslite/pkg/port/socket"
 	"github.com/kzzfxf/sslite/pkg/service"
-	"github.com/kzzfxf/sslite/pkg/ui"
 )
 
 type RunFlags struct {
 	*GlobalFlags
 	HttpPort   int
 	SocketPort int
-	OpenUI     bool
+	ShowUI     bool
 }
 
 func NewRunFlags(gflags *GlobalFlags) (flags *RunFlags) {
 	flags = &RunFlags{GlobalFlags: gflags}
 	flags.HttpPort = 8998
 	flags.SocketPort = 8999
-	flags.OpenUI = false
+	flags.ShowUI = false
 	return
 }
 
@@ -67,14 +67,31 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 		return
 	}
 
-	err = service.SSLite.Init(conf, rulesConf)
+	err = service.SSLite.Init(ctx, conf, rulesConf)
 	if err != nil {
 		logkit.Error("call service.SSLite.Init failed", logkit.Any("error", err))
 		return
 	}
 
-	var wg sync.WaitGroup
+	var (
+		win *gui.MainWindow
+		wg  sync.WaitGroup
+	)
+
 	wg.Add(1)
+
+	if flags.ShowUI {
+		win, err = gui.NewMainWindow()
+		if err != nil {
+			logkit.Error("call ui.ShowMainUI failed", logkit.Any("error", err))
+			return
+		}
+
+		service.UI.Init(win)
+
+		win.Show(func() { wg.Done() })
+		defer win.Close()
+	}
 
 	if flags.HttpPort > 0 {
 		go func() {
@@ -92,16 +109,6 @@ func OnRunHandler(ctx context.Context, flags *RunFlags, args []string) (err erro
 			err = socket.Start(ctx, "tcp", fmt.Sprintf(":%d", flags.SocketPort))
 			if err != nil {
 				logkit.Error("call socket.Start failed", logkit.Any("error", err), logkit.Any("port", flags.SocketPort))
-			}
-		}()
-	}
-
-	if flags.OpenUI {
-		go func() {
-			defer wg.Done()
-			err = ui.ShowMainUI()
-			if err != nil {
-				logkit.Error("call ui.ShowMainUI failed", logkit.Any("error", err))
 			}
 		}()
 	}

@@ -18,13 +18,16 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"sort"
+	"time"
 
 	"github.com/kzzfxf/sslite/pkg/config"
 	"github.com/kzzfxf/sslite/pkg/core"
+	"github.com/kzzfxf/sslite/pkg/utils"
 )
 
 type sslite interface {
-	Init(conf *config.Config, rulesConf *config.Rules) (err error)
+	Init(ctx context.Context, conf *config.Config, rulesConf *config.Rules) (err error)
 	ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request)
 	ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string)
 	ServeSocket(ctx context.Context, client net.Conn, dstAddr string)
@@ -36,23 +39,70 @@ type ssliteImpl struct {
 
 var SSLite sslite = &ssliteImpl{}
 
-func (tp *ssliteImpl) Init(conf *config.Config, rulesConf *config.Rules) (err error) {
+func (ss *ssliteImpl) Init(ctx context.Context, conf *config.Config, rulesConf *config.Rules) (err error) {
 	engine, err := core.NewEngine(conf, rulesConf)
 	if err != nil {
 		return
 	}
-	tp.engine = engine
+	ss.engine = engine
+
+	// Start ui render
+	go ss.RenderUI(ctx)
+
 	return
 }
 
-func (tp *ssliteImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	tp.engine.ServeHTTP(ctx, w, r)
+func (ss *ssliteImpl) ServeHTTP(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	ss.engine.ServeHTTP(ctx, w, r)
 }
 
-func (tp *ssliteImpl) ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string) {
-	tp.engine.ServeSocket(ctx, client, dstAddr)
+func (ss *ssliteImpl) ServeHTTPS(ctx context.Context, client net.Conn, dstAddr string) {
+	ss.engine.ServeSocket(ctx, client, dstAddr)
 }
 
-func (tp *ssliteImpl) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
-	tp.engine.ServeSocket(ctx, client, dstAddr)
+func (ss *ssliteImpl) ServeSocket(ctx context.Context, client net.Conn, dstAddr string) {
+	ss.engine.ServeSocket(ctx, client, dstAddr)
+}
+
+// RenderUI
+func (ss *ssliteImpl) RenderUI(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer func() {
+		ticker.Stop()
+	}()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			ss.UpdateTunnelsTable()
+			UI.Render()
+		}
+	}
+}
+
+// RenderTunnelsTable
+func (ss *ssliteImpl) UpdateTunnelsTable() {
+	var rows [][]string
+	var tunnels []*core.Tunnel
+	ss.engine.RangeTunnels(func(tunnelID string, tunnel *core.Tunnel) {
+		tunnels = append(tunnels, tunnel)
+	})
+
+	sort.Slice(tunnels, func(i, j int) bool {
+		inbytes := tunnels[i].UpNBytes() + tunnels[i].DownNBytes()
+		jnbytes := tunnels[j].UpNBytes() + tunnels[j].DownNBytes()
+		if inbytes != 0 || jnbytes != 0 {
+			return (inbytes > jnbytes)
+		}
+		return !sort.StringsAreSorted([]string{tunnels[i].Name(), tunnels[j].Name()})
+	})
+	for _, tunnel := range tunnels {
+		rows = append(rows, []string{
+			tunnel.Name(), utils.FormatBytes(tunnel.UpNBytes()), utils.FormatBytes(tunnel.DownNBytes()),
+		})
+	}
+
+	UI.UpdateTunnelsTable(rows)
 }

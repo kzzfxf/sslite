@@ -28,16 +28,16 @@ func init() {
 		flags = handler.NewRunFlags(gflags)
 	)
 	runc.Use = "run"
-	runc.Short = "Start the proxy process"
-	runc.Long = "Start the proxy process and listen for proxy connections."
+	runc.Short = "Start proxy process"
+	runc.Long = "Start proxy process and listen for proxy connections."
 	// Events
 	runc.RunE = func(cmd *cobra.Command, args []string) error {
 		return handler.OnRunHandler(cmd.Context(), flags, args)
 	}
 	// Flags
 	if f := runc.Flags(); f != nil {
-		f.IntVarP(&flags.HttpPort, "with-http", "", flags.HttpPort, "with a http port")
-		f.IntVarP(&flags.SocketPort, "with-socket", "", flags.SocketPort, "with a socket port")
-		f.BoolVarP(&flags.OpenUI, "with-ui", "", flags.OpenUI, "show a terminal UI")
+		f.IntVarP(&flags.HttpPort, "with-http", "", flags.HttpPort, "set a http port")
+		f.IntVarP(&flags.SocketPort, "with-socket", "", flags.SocketPort, "set a socket port")
+		f.BoolVarP(&flags.ShowUI, "with-gui", "", flags.ShowUI, "show terminal GUI")
 	}
 }

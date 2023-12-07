@@ -108,6 +108,18 @@ func (tp *Engine) GetTunnel(tunnelID string) (tunnel *Tunnel, ok bool) {
 	return
 }
 
+// RangeTunnels
+func (tp *Engine) RangeTunnels(fn func(tunnelID string, tunnel *Tunnel)) {
+	if fn == nil {
+		return
+	}
+	tp.locker.RLock()
+	defer tp.locker.RUnlock()
+	for tunnelID, tunnel := range tp.tunnels {
+		fn(tunnelID, tunnel)
+	}
+}
+
 // AddTunnel
 func (tp *Engine) AddTunnel(tunnel *Tunnel) (tunnelID string) {
 	tunnelID = internal.RandomN(12)
