@@ -76,6 +76,7 @@ func (ss *ssliteImpl) RenderUI(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			ss.UpdateBridgesTable()
 			ss.UpdateTunnelsTable()
 			UI.Render()
 		}
@@ -105,4 +106,27 @@ func (ss *ssliteImpl) UpdateTunnelsTable() {
 	}
 
 	UI.UpdateTunnelsTable(rows)
+}
+
+// UpdateBridgesTable
+func (ss *ssliteImpl) UpdateBridgesTable() {
+	var rows [][]string
+	var bridges []core.Bridge
+	ss.engine.RangeBridges(func(bridgeID string, bridge core.Bridge) {
+		bridges = append(bridges, bridge)
+	})
+
+	sort.Slice(bridges, func(i, j int) bool {
+		return !sort.StringsAreSorted([]string{bridges[i].OutBound(), bridges[j].OutBound()})
+	})
+	for _, bridge := range bridges {
+		var tunnel string
+		if tun := bridge.Tunnel(); tun != nil {
+			tunnel = tun.Name()
+		}
+		rows = append(rows, []string{
+			bridge.InBound(), "", bridge.OutBound(), bridge.Forward(), tunnel, core.GetBridgeStatus(bridge.Status()),
+		})
+	}
+	UI.UpdateBridgesTable(rows)
 }

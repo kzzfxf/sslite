@@ -144,6 +144,18 @@ func (tp *Engine) GetBridge(bridgeID string) (bridge Bridge, ok bool) {
 	return
 }
 
+// RangeBridges
+func (tp *Engine) RangeBridges(fn func(bridgeID string, bridge Bridge)) {
+	if fn == nil {
+		return
+	}
+	tp.locker.RLock()
+	defer tp.locker.RUnlock()
+	for bridgeID, bridge := range tp.bridges {
+		fn(bridgeID, bridge)
+	}
+}
+
 // AddBridge
 func (tp *Engine) AddBridge(bridge Bridge) (bridgeID string) {
 	bridgeID = internal.RandomN(16)
@@ -208,10 +220,7 @@ func (tp *Engine) transport(ctx context.Context, bridge Bridge, tunnel *Tunnel) 
 		logkit.Any("outbound_real", bridge.OutBoundReal()),
 	)
 
-	dialFn := func(network, addr string) (net.Conn, error) {
-		return tunnel.Dial(network, addr)
-	}
-	err := bridge.Transport(ctx, dialFn)
+	err := bridge.Transport(ctx, tunnel)
 	if err != nil {
 		logkit.Error("transport failed", logkit.Any("error", err), logkit.Any("inbound", bridge.InBound()), logkit.Any("outbound", bridge.OutBound()), logkit.Any("outbound_real", bridge.OutBoundReal()), logkit.Any("tunnel", tunnel.Name()))
 		return

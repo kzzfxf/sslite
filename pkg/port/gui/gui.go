@@ -66,7 +66,7 @@ func (win *MainWindow) initUI() {
 	win.bridges.TextStyle = termui.NewStyle(termui.ColorWhite)
 	win.bridges.RowStyles[0] = termui.NewStyle(termui.ColorWhite, termui.StyleClear.Bg, termui.ModifierBold)
 	win.bridges.Rows = [][]string{
-		{"InBound", "Rule", "OutBound", "RealOutBound", "Tunnel"}, // Headers
+		{"InBound", "Rule", "OutBound", "Forward", "Tunnel", "Status"}, // Headers
 	}
 }
 

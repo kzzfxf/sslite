@@ -34,6 +34,23 @@ const (
 	BridgeStatusDisconnect int32 = 3
 )
 
+// ParseBridgeStatus
+func GetBridgeStatus(status int32) string {
+	switch status {
+	case BridgeStatusFailed:
+		return "failed"
+	case BridgeStatusReady:
+		return "ready"
+	case BridgeStatusConnect:
+		return "connect"
+	case BridgeStatusTraffic:
+		return "traffic"
+	case BridgeStatusDisconnect:
+		return "disconnect"
+	}
+	return "unknown"
+}
+
 type DialFunc func(network, addr string) (conn net.Conn, err error)
 
 type Bridge interface {
@@ -50,13 +67,20 @@ type Bridge interface {
 	// OutBoundReal returns the real destination address.
 	OutBoundReal() (addr string)
 
+	// Forward returns the forward address.
+	Forward() (addr string)
+
+	// Tunnel
+	Tunnel() (tunnel *Tunnel)
+
 	// Transport
-	Transport(ctx context.Context, dial DialFunc) (err error)
+	Transport(ctx context.Context, tunnel *Tunnel) (err error)
 }
 
 type HttpBridge struct {
 	w       http.ResponseWriter
 	r       *http.Request
+	tunnel  *Tunnel
 	dstAddr string
 	forward string
 	status  int32
@@ -90,11 +114,23 @@ func (hb *HttpBridge) OutBoundReal() (addr string) {
 	return hb.dstAddr
 }
 
+// Forward
+func (hb *HttpBridge) Forward() (addr string) {
+	return hb.forward
+}
+
+// Tunnel
+func (hb *HttpBridge) Tunnel() (tunnel *Tunnel) {
+	return hb.tunnel
+}
+
 // Transport
-func (hb *HttpBridge) Transport(ctx context.Context, dial DialFunc) (err error) {
+func (hb *HttpBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error) {
+	hb.tunnel = tunnel
+
 	transport := &http.Transport{
 		Dial: func(network, addr string) (net.Conn, error) {
-			return dial("tcp", hb.OutBoundReal())
+			return tunnel.Dial("tcp", hb.OutBoundReal())
 		},
 		MaxIdleConns:          100,
 		IdleConnTimeout:       90 * time.Second,
@@ -135,6 +171,7 @@ func (hb *HttpBridge) Transport(ctx context.Context, dial DialFunc) (err error) 
 
 type SocketBridge struct {
 	client  net.Conn
+	tunnel  *Tunnel
 	dstAddr string
 	forward string
 	status  int32
@@ -168,12 +205,23 @@ func (sb *SocketBridge) OutBoundReal() (addr string) {
 	return sb.dstAddr
 }
 
+// Forward
+func (sb *SocketBridge) Forward() (addr string) {
+	return sb.forward
+}
+
+// Tunnel
+func (sb *SocketBridge) Tunnel() (tunnel *Tunnel) {
+	return sb.tunnel
+}
+
 // Transport
-func (sb *SocketBridge) Transport(ctx context.Context, dial DialFunc) (err error) {
+func (sb *SocketBridge) Transport(ctx context.Context, tunnel *Tunnel) (err error) {
+	sb.tunnel = tunnel
 
 	atomic.StoreInt32(&sb.status, BridgeStatusConnect)
 
-	server, err := dial("tcp", sb.OutBoundReal())
+	server, err := tunnel.Dial("tcp", sb.OutBoundReal())
 	if err != nil {
 		atomic.StoreInt32(&sb.status, BridgeStatusFailed)
 		return

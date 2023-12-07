@@ -35,7 +35,9 @@ var UI ui = &uImpl{}
 
 // Init
 func (ui *uImpl) Init(updater GUIUpdater) {
-	ui.updater = updater
+	if ui.updater == nil {
+		ui.updater = updater
+	}
 }
 
 // UpdateTunnelsTable
@@ -47,7 +49,9 @@ func (ui *uImpl) UpdateTunnelsTable(rows [][]string) {
 
 // UpdateBridgeTable
 func (ui *uImpl) UpdateBridgesTable(rows [][]string) {
-
+	if ui.updater != nil {
+		ui.updater.UpdateBridgesTable(rows)
+	}
 }
 
 // Render
